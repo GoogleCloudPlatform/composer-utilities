@@ -1,0 +1,15 @@
+# Code owners file.
+# This file controls who is tagged for review for any given pull request.
+#
+# For syntax help see:
+# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners#codeowners-syntax
+
+
+# Prefer GitHub teams over individuals to make it easier to find a suitable owner
+# when someone is OOO or leaves the team.
+
+# python-samples-owners is in charge of infrastructure (Kokoro, noxfiles, etc.) in this repository
+# python-samples-reviewers reviews Python sample code for adherence to sample guidelines
+*                                      @GoogleCloudPlatform/teams/cloud-dpes-composer
+/.github/                              @GoogleCloudPlatform/teams/cloud-dpes-composer @GoogleCloudPlatform/@GoogleCloudPlatform/python-samples-owners
+
