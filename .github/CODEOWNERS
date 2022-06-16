@@ -10,6 +10,6 @@
 
 # python-samples-owners is in charge of infrastructure (Kokoro, noxfiles, etc.) in this repository
 # python-samples-reviewers reviews Python sample code for adherence to sample guidelines
-*                                      @GoogleCloudPlatform/teams/cloud-dpes-composer
-/.github/                              @GoogleCloudPlatform/teams/cloud-dpes-composer @GoogleCloudPlatform/@GoogleCloudPlatform/python-samples-owners
+*                                      @GoogleCloudPlatform/cloud-dpes-composer
+/.github/                              @GoogleCloudPlatform/cloud-dpes-composer @GoogleCloudPlatform/python-samples-owners
 
