@@ -8,8 +8,8 @@
 # Prefer GitHub teams over individuals to make it easier to find a suitable owner
 # when someone is OOO or leaves the team.
 
-# python-samples-owners is in charge of infrastructure (Kokoro, noxfiles, etc.) in this repository
-# python-samples-reviewers reviews Python sample code for adherence to sample guidelines
+# cloud-dpes-composer is in charge of this repository with python-samples-owner as a fallback if needed
+
 *                                      @GoogleCloudPlatform/cloud-dpes-composer
 /.github/                              @GoogleCloudPlatform/cloud-dpes-composer @GoogleCloudPlatform/python-samples-owners
 
