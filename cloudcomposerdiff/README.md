@@ -141,7 +141,7 @@ Navigate to the directory containing pyproject.toml
 
 Apply the sort to all files recurisvely
 
-```
+```shell
 isort .
 ```
 
