@@ -9,6 +9,16 @@ attributes and diffs them. It shows which attributes have different values acros
 environemnts, and what those values are. It also shows which attributes have a common
 value across environments, and what this common value is.
 
+When comparing two Cloud Composer environments that share no common attribute values
+the "matching_value" column will be empty as per the example below:
+
+![gif showing environments with zero matches](img/no_matches.gif)
+
+When comparing two Cloud Composer environments that share common attributes values
+the "matching_value" column will be populated and the "env_1_value" and "env_2_value"
+columns will be empty. This is shown in the example below.
+
+![gif showing environments with lots of matches](img/lots_of_matches.gif)
 
 
 ## Running this code
