@@ -58,7 +58,7 @@ from . import __version__
 @click.option(
     "--env2_name",
     type=str,
-    help="GCP name for Cloud Composer Environment #2",
+    help="Name for Cloud Composer Environment #2",
     required=True,
 )
 @click.option(
