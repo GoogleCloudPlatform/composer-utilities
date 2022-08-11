@@ -47,7 +47,7 @@ gcloud init
 
 Next, authorize the application to access cloud composer environments:
 
-```
+```shell
 gcloud auth application-default login
 ```
 
