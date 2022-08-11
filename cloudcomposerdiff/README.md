@@ -29,7 +29,7 @@ columns will be empty. This is shown in the example below.
 
 ### Install locally with pip
 
-```
+```shell
 pip install cloudcomposerdiff
 ```
 
