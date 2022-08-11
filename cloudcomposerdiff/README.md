@@ -85,7 +85,7 @@ $ pyenv shell 3.10.0
 
 ### Create a virtual environment with venv module
 
-```
+```shell
 python3 -m venv venv
 ```
 
