@@ -192,7 +192,7 @@ A MAJOR.MINOR.PATCH approach is used to versioning
 
 E.g. to preview an increase to minor 
 
-```
+```shell
 bumpver update --minor --dry
 ```
 
