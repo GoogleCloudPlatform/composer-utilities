@@ -161,7 +161,7 @@ Navigate to the directory containing pyproject.toml
 
 Apply the formatter to all files recurisvely
 
-```
+```shell
 flake8 --max-line-length=88 src
 ```
 
