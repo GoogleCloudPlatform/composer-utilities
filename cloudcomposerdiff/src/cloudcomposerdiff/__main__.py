@@ -46,7 +46,7 @@ from . import __version__
 @click.option(
     "--env2_project_id",
     type=str,
-    help="GCP Project ID for Cloud Composer Environment #2",
+    help="Project ID for Cloud Composer Environment #2",
     required=True,
 )
 @click.option(
