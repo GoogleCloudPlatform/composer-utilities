@@ -131,7 +131,7 @@ cloudcomposerdiff \
 ### Run tests w/ pytest
 
 Navigate to the directory containing pyproject.toml
-```
+```shell
 pytest
 ```
 
