@@ -79,7 +79,7 @@ $ pyenv install 3.10.0
 ```
 
 Use pyenv to switch to python 3.10.0
-```
+```shell
 $ pyenv shell 3.10.0
 ```
 
