@@ -25,7 +25,7 @@ columns will be empty. This is shown in the example below.
 
 ### Clone repository
 
-Clone the code from GitHub to your local machine
+[Clone the code](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) from GitHub to your local machine
 
 ### Install locally with pip
 
