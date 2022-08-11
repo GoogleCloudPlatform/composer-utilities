@@ -75,7 +75,7 @@ Install [pyenv](https://github.com/pyenv/pyenv).
 
 Use pyenv to install a suitable version of python, e.g. 3.10.0
 ```shell
-$ pyenv install 3.10.0    
+pyenv install 3.10.0    
 ```
 
 Use pyenv to switch to python 3.10.0
