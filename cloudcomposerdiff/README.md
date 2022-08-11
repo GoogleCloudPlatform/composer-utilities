@@ -74,7 +74,7 @@ Clone the code from GitHub to your local machine
 Install [pyenv](https://github.com/pyenv/pyenv).
 
 Use pyenv to install a suitable version of python, e.g. 3.10.0
-```
+```shell
 $ pyenv install 3.10.0    
 ```
 
