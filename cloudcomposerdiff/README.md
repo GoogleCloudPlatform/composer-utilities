@@ -151,7 +151,7 @@ Navigate to the directory containing pyproject.toml
 
 Apply the formatter to all files recurisvely
 
-```
+```shell
 black .
 ```
 
