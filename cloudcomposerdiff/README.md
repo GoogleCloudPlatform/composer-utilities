@@ -55,12 +55,12 @@ gcloud auth application-default login
 
 ```shell
 cloudcomposerdiff \
---env1_project_id <> \
---env1_location <> \
---env1_name <> \
---env2_project_id <> \
---env2_location <> \
---env2_name <>
+--env1_project_id YOUR_PROJECT_ID \
+--env1_location YOUR_ENV1_LOCATION \
+--env1_name YOUR_ENV1_NAME \
+--env2_project_id YOUR_PROJECT_ID \
+--env2_location YOUR_ENV2_LOCATION \
+--env2_name YOUR_ENV2_NAME
 ```
 
 ## Developing this application
