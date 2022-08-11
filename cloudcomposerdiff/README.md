@@ -53,7 +53,7 @@ gcloud auth application-default login
 
 ### Use the appplication
 
-```
+```shell
 cloudcomposerdiff \
 --env1_project_id <> \
 --env1_location <> \
