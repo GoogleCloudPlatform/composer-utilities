@@ -180,7 +180,7 @@ For dev-only edit project.optional-dependencies.dev section.
 Do not manually update requirements.txt
 
 Use a pip-tools command to sync pyproject.toml to requirements.txt
-```
+```shell
 pip-compile pyproject.toml
 ```
 
