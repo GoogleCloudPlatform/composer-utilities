@@ -39,7 +39,7 @@ Install [gcloud](https://cloud.google.com/sdk/gcloud)
 
 Select a user which has access to both composer environments to compare.
 
-Wit this user account, initialize gcloud:
+With this user account, initialize gcloud:
 
 ```
 gcloud init
