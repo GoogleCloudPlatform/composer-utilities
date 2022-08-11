@@ -52,7 +52,7 @@ from . import __version__
 @click.option(
     "--env2_location",
     type=str,
-    help="GCP location for Cloud Composer Environment #2",
+    help="Compute Engine region for Cloud Composer Environment #2",
     required=True,
 )
 @click.option(
