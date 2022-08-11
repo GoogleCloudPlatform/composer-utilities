@@ -93,7 +93,7 @@ activate the virtual environment
 ```
 source venv/bin/activate
 ```
-check that we are using the python of the virtual environment
+check that we are using the Python of the virtual environment
 ```
 (venv) $ which python
 .../cloudcomposerdiff/venv/bin/python
