@@ -112,7 +112,7 @@ Install all the dependcies end-users would get when running pip install
 ```
 (venv ) $ python3 -m pip install --editable .
 ```
-Install additiona dev only dependencies that end-users do not get
+Install additional dev only dependencies that end-users do not get
 ```shell
 python -m pip install --editable .[dev]
 ```
