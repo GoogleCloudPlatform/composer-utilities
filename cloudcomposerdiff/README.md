@@ -41,7 +41,7 @@ Select a user which has access to both composer environments to compare.
 
 With this user account, initialize gcloud:
 
-```
+```shell
 gcloud init
 ```
 
