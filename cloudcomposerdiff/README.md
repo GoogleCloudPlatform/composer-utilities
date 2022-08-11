@@ -90,7 +90,7 @@ python3 -m venv venv
 ```
 
 activate the virtual environment
-```
+```shell
 source venv/bin/activate
 ```
 check that we are using the Python of the virtual environment
