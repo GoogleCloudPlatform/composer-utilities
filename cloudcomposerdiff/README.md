@@ -198,7 +198,7 @@ bumpver update --minor --dry
 
 E.g. to actually increase minor 
 
-```
+```shell
 bumpver update --minor
 ```
 
