@@ -46,7 +46,8 @@ pip install cloudcomposerdiff
 
 Install [gcloud](https://cloud.google.com/sdk/gcloud)
 
-Select a user which has access to both composer environments to compare.
+Select a user which has access to both Cloud Composer environments to compare. This user
+needs composer.environments.get [permission](https://cloud.google.com/composer/docs/how-to/access-control#permissions_for_api_methods)
 
 With this user account, initialize gcloud:
 
@@ -54,7 +55,7 @@ With this user account, initialize gcloud:
 gcloud init
 ```
 
-Next, authorize the application to access cloud composer environments:
+Next, authorize the application to access Cloud Composer environments:
 
 ```shell
 gcloud auth application-default login
