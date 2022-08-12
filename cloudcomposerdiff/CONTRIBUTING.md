@@ -1,5 +1,12 @@
 ## Developing this application
 
+### Prerequisites
+
+ * Python version: application has been tested on python version 3.10
+ * Composer version:  compatible with both Composer 1 and Composer 2
+ * Composer version:  compatible with all Composer configurations
+ * GCP IAM Permissions: executing user needs composer.environments.get [permission](https://cloud.google.com/composer/docs/how-to/access-control#permissions_for_api_methods)
+
 ### Clone repository
 
 Clone the code from GitHub to your local machine
@@ -15,13 +22,13 @@ pyenv install 3.10.0
 
 Use pyenv to switch to python 3.10.0
 ```shell
-$ pyenv shell 3.10.0
+pyenv shell 3.10.0
 ```
 
 ### Create a virtual environment with venv module
 
 ```shell
-python3 -m venv venv
+python -m venv venv
 ```
 
 activate the virtual environment
@@ -30,7 +37,7 @@ source venv/bin/activate
 ```
 check that we are using the Python of the virtual environment
 ```
-(venv) $ which python
+which python
 .../cloudcomposerdiff/venv/bin/python
 ```
 
@@ -45,7 +52,7 @@ Navigate to the directory containing pyproject.toml
 Install all the dependcies end-users would get when running pip install
 
 ```
-(venv ) $ python3 -m pip install --editable .
+python -m pip install --editable .
 ```
 Install additional dev only dependencies that end-users do not get
 ```shell

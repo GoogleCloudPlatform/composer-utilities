@@ -38,6 +38,10 @@ columns will be empty. This is shown in the example below.
 
 ### Install locally with pip
 
+navigate to the cloudcomposerdiff directory
+
+from within the cloudcomposerdiff directory run the following command
+
 ```shell
 pip install cloudcomposerdiff
 ```
