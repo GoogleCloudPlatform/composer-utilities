@@ -14,6 +14,7 @@
  limitations under the License.
  """
 
+import logging
 from typing import Dict
 
 from google.cloud.orchestration.airflow import service_v1
@@ -32,7 +33,7 @@ class DiffAirflowConfig(EnvironmentAttributeDiffer):
         diffs = []
         if config1 == {} and config2 == {}:
             # both environments do not have any airflow config overrides
-            pass
+            logging.warning("Both environments have no airflow config overrides.")
         elif not config1 == {} and config2 == {}:
             # only environment 1 has config overrides
             while len(config1) > 0:

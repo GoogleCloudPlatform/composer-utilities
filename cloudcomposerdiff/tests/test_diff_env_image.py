@@ -18,7 +18,7 @@ from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.service import GCPComposerService
-from cloudcomposerdiff.lib.strategies.diffenvimage import DiffEnvImage
+from cloudcomposerdiff.lib.strategies.diff_env_image import DiffEnvImage
 
 
 def test_diff_env_image_strategy():
