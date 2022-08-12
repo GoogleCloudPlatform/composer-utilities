@@ -77,7 +77,7 @@ Navigate to the directory containing pyproject.toml
 pytest
 ```
 
-### Sort imports with isosort
+### Sort imports with isort
 
 Navigate to the directory containing pyproject.toml
 

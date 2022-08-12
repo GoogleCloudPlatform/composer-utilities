@@ -14,6 +14,7 @@
  limitations under the License.
  """
 
+import json
 from typing import List
 
 from google.cloud.orchestration.airflow import service_v1
@@ -57,4 +58,22 @@ class EnvironmentComparator:
         console.print(table)
 
     def output_diffs_as_json(self) -> None:
-        pass
+        with open("cloudcomposerdiff.json", "w") as write_file:
+            json_data = {"differences_detected": []}
+            for diff in self.differences:
+                json_data["differences_detected"].append(
+                    {
+                        "category": diff.category_of_diff,
+                        "attribute": diff.diff_anchor,
+                        "env_1_value": None
+                        if diff.values_match
+                        else diff.env_1_anchor_value,
+                        "env_2_value": None
+                        if diff.values_match
+                        else diff.env_2_anchor_value,
+                        "matching_value": diff.env_1_anchor_value
+                        if diff.values_match
+                        else None,
+                    }
+                )
+            json.dump(json_data, write_file, indent=4)

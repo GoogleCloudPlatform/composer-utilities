@@ -90,4 +90,19 @@ cloudcomposerdiff \
 
 Upon executing the command, the tool will make APIs to Cloud Composer to fetch details
 of the two specified environments. The details are then compared and the result diff
-is sent back to the requesting user.
+is sent back to the requesting user and printed out to the console
+
+It is also possible to output the detected differences in a JSON file. The file is
+named "cloudcomposerdiff.json". To request a JSON file, an additional flag is required
+as per the example below.
+
+```shell
+cloudcomposerdiff \
+--env1_project_id YOUR_PROJECT_ID \
+--env1_location YOUR_ENV1_LOCATION \
+--env1_name YOUR_ENV1_NAME \
+--env2_project_id YOUR_PROJECT_ID \
+--env2_location YOUR_ENV2_LOCATION \
+--env2_name YOUR_ENV2_NAME \
+--json_output
+```
