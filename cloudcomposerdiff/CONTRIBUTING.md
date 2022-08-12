@@ -144,4 +144,4 @@ E.g. to actually increase minor
 bumpver update --minor
 ```
 
-bumpver will go and update the verion number whever it appears in the package.
+bumpver will go and update the verion number wherever it appears in the package.
