@@ -23,7 +23,14 @@ columns will be empty. This is shown in the example below.
 ![gif showing environments with lots of matches](img/lots_of_matches.gif)
 
 
-## Running this code
+## Running the application
+
+### Prerequisites
+
+ * Python version: application has been tested on python version 3.10
+ * Composer version:  compatible with both Composer 1 and Composer 2
+ * Composer version:  compatible with all Composer configurations
+ * GCP IAM Permissions: executing user needs composer.environments.get [permission](https://cloud.google.com/composer/docs/how-to/access-control#permissions_for_api_methods)
 
 ### Clone repository
 
