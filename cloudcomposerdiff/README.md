@@ -1,6 +1,8 @@
-# Diff two Cloud Composer environments.
+# cloudcomposerdiff
 
 Hey there ! If you need to diff two Cloud Composer environments, this tool is for you.
+
+cloudcomposerdiff is a python command line tool to diff two Cloud Composer environments.
 
 ![gif showing environments with some matches & some differences](img/some_matches.gif)
 
