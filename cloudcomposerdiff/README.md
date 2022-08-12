@@ -63,6 +63,17 @@ gcloud auth application-default login
 
 ### Use the appplication
 
+cloudcomposerdiff is a command line tool. 
+
+Details about expected inputs can be gathered by running the snippet below.
+
+```shell
+cloudcomposerdiff --help
+```
+
+To compare two environments the project ID, location & name of each composer environment
+need to passed as input into the tool. 
+
 ```shell
 cloudcomposerdiff \
 --env1_project_id YOUR_PROJECT_ID \
@@ -72,3 +83,7 @@ cloudcomposerdiff \
 --env2_location YOUR_ENV2_LOCATION \
 --env2_name YOUR_ENV2_NAME
 ```
+
+Upon executing the command, the tool will make APIs to Cloud Composer to fetch details
+of the two specified environments. The details are then compared and the result diff
+is sent back to the requesting user.
