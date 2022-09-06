@@ -11,6 +11,13 @@ attributes and diffs them. It shows which attributes have different values acros
 environemnts, and what those values are. It also shows which attributes have a common
 value across environments, and what this common value is.
 
+The tool can compare the follow attributes of Cloud Composer environments:
+
+* Cloud Compser image version
+* AirFlow configuratio overrides
+* PyPi packages
+* Environment variables
+
 When comparing two Cloud Composer environments that share no common attribute values
 the "matching_value" column will be empty as per the example below:
 
