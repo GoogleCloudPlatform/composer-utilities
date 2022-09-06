@@ -14,7 +14,7 @@ value across environments, and what this common value is.
 The tool can compare the follow attributes of Cloud Composer environments:
 
 * Cloud Compser image version
-* AirFlow configuratio overrides
+* AirFlow configuration overrides
 * PyPi packages
 * Environment variables
 
