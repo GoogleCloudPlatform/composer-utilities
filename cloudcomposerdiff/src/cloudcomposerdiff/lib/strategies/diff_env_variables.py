@@ -23,19 +23,19 @@ from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 
-class DiffAirflowConfig(EnvironmentAttributeDiffer):
+class DiffEnvVariables(EnvironmentAttributeDiffer):
     def detect_difference(
         self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
-        config1: Dict = env1.config.software_config.airflow_config_overrides
-        config2: Dict = env2.config.software_config.airflow_config_overrides
-        category: str = "airflow_config_overrides"
+        config1: Dict = env1.config.software_config.env_variables
+        config2: Dict = env2.config.software_config.env_variables
+        category: str = "env_variables"
         diffs = []
         if config1 == {} and config2 == {}:
-            # both environments do not have any airflow config overrides
-            logging.warning("Both environments have no airflow config overrides.")
+            # both environments do not have any custom env variables
+            logging.warning("Both environments have no custom env variables.")
         elif not config1 == {} and config2 == {}:
-            # only environment 1 has config overrides
+            # only environment 1 has env variables
             while len(config1) > 0:
                 k1, v1 = config1.popitem()
                 diffs.append(
@@ -47,7 +47,7 @@ class DiffAirflowConfig(EnvironmentAttributeDiffer):
                     )
                 )
         elif config1 == {} and not config2 == {}:
-            # only environment 1 has config overrides
+            # only environment 1 has env variables
             while len(config2) > 0:
                 k2, v2 = config2.popitem()
                 diffs.append(
@@ -60,7 +60,7 @@ class DiffAirflowConfig(EnvironmentAttributeDiffer):
                 )
 
         else:
-            # both environments have airflow config overrides to compare
+            # both environments have custom env variables to compare
             # compare both config parameter & value across both environments
             while len(config1) > 0:
                 # remove an item from config1

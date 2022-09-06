@@ -23,17 +23,17 @@ from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 
-class DiffAirflowConfig(EnvironmentAttributeDiffer):
+class DiffPyPiPackages(EnvironmentAttributeDiffer):
     def detect_difference(
         self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
-        config1: Dict = env1.config.software_config.airflow_config_overrides
-        config2: Dict = env2.config.software_config.airflow_config_overrides
-        category: str = "airflow_config_overrides"
+        config1: Dict = env1.config.software_config.pypi_packages
+        config2: Dict = env2.config.software_config.pypi_packages
+        category: str = "pypi_packages"
         diffs = []
         if config1 == {} and config2 == {}:
-            # both environments do not have any airflow config overrides
-            logging.warning("Both environments have no airflow config overrides.")
+            # both environments do not have any custom pypi packages
+            logging.warning("Both environments have no custom pypi packages.")
         elif not config1 == {} and config2 == {}:
             # only environment 1 has config overrides
             while len(config1) > 0:
@@ -60,7 +60,7 @@ class DiffAirflowConfig(EnvironmentAttributeDiffer):
                 )
 
         else:
-            # both environments have airflow config overrides to compare
+            # both environments have custom pypi packages to compare
             # compare both config parameter & value across both environments
             while len(config1) > 0:
                 # remove an item from config1

@@ -19,16 +19,24 @@ from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.service import GCPComposerService
-from cloudcomposerdiff.lib.strategies.diff_env_image import DiffEnvImage
+from cloudcomposerdiff.lib.strategies.diff_pypi_packages import DiffPyPiPackages
 
 
-def test_diff_env_image_strategy():
+def test_diff_pypi_packages_strategy():
     env1: service_v1.types.Environment = service_v1.types.Environment(
         {
             "config": service_v1.types.EnvironmentConfig(
                 {
                     "software_config": service_v1.types.SoftwareConfig(
-                        {"image_version": "123"}
+                        {
+                            "image_version": "123",
+                            "airflow_config_overrides" : {
+                                "webserver-dag_orientation" : "LR"
+                            },
+                            "pypi_packages" : {
+                                "scipy":"1.9.1"
+                            }
+                        }
                     )
                 }
             )
@@ -39,13 +47,21 @@ def test_diff_env_image_strategy():
             "config": service_v1.types.EnvironmentConfig(
                 {
                     "software_config": service_v1.types.SoftwareConfig(
-                        {"image_version": "456"}
+                        {
+                            "image_version": "456",
+                            "airflow_config_overrides" : {
+                                "webserver-dag_orientation" : "TB"
+                            },
+                            "pypi_packages" : {
+                                "scipy":"1.8.0"
+                            }                                                       
+                        }
                     )
                 }
             )
         }
     )
-    detector: DiffEnvImage = DiffEnvImage()
+    detector: DiffPyPiPackages = DiffPyPiPackages()
     diffs: List[EnvironmentAttributeDiff] = detector.detect_difference(env1, env2)
-    assert diffs[0].category_of_diff == "composer_image_version"
+    assert diffs[0].category_of_diff == "pypi_packages"
     assert len(diffs) == 1

@@ -21,6 +21,8 @@ from cloudcomposerdiff.lib.comparator import EnvironmentComparator
 from cloudcomposerdiff.lib.service import GCPComposerService
 from cloudcomposerdiff.lib.strategies.diff_airflow_config import DiffAirflowConfig
 from cloudcomposerdiff.lib.strategies.diff_env_image import DiffEnvImage
+from cloudcomposerdiff.lib.strategies.diff_pypi_packages import DiffPyPiPackages
+from cloudcomposerdiff.lib.strategies.diff_env_variables import DiffEnvVariables
 
 from . import __version__
 
@@ -88,6 +90,8 @@ def main(
     comparator: EnvironmentComparator = EnvironmentComparator(env1, env2)
     comparator.compare_environments(strategy=DiffEnvImage())
     comparator.compare_environments(strategy=DiffAirflowConfig())
+    comparator.compare_environments(strategy=DiffPyPiPackages())
+    comparator.compare_environments(strategy=DiffEnvVariables())
 
     if json_output:
         # user has selected to get output as JSON for storage or piping elsewhere
