@@ -30,7 +30,7 @@ jobs:
       - uses: psf/black@stable
         with:
           option: "--check --verbose"
-          src: "./cloudcomposerdiff/
+          src: "./cloudcomposerdiff"
 
       # adapted from GitHub docs for building and testing Python
       # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
