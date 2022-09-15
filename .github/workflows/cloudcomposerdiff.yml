@@ -27,10 +27,10 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: "3.10"
-     #- uses: psf/black@stable
-     #   with:
-     #     options: "--check --verbose"
-     #     src: "./cloudcomposerdiff"
+      - uses: psf/black@stable
+        with:
+          options: "--check --verbose"
+          src: "./cloudcomposerdiff"
 
       # adapted from GitHub docs for building and testing Python
       # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
