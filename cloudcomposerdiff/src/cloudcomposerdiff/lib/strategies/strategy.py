@@ -14,8 +14,7 @@
  limitations under the License.
  """
 
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import List
 
 from google.cloud.orchestration.airflow import service_v1

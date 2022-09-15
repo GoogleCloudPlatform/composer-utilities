@@ -18,11 +18,10 @@ from typing import List
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
-from cloudcomposerdiff.lib.service import GCPComposerService
 from cloudcomposerdiff.lib.strategies.diff_pypi_packages import DiffPyPiPackages
 
 
-def test_diff_pypi_packages_strategy():
+def test_diff_pypi_packages_strategy() -> None:
     env1: service_v1.types.Environment = service_v1.types.Environment(
         {
             "config": service_v1.types.EnvironmentConfig(

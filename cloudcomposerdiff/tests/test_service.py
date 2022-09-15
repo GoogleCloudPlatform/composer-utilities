@@ -21,12 +21,12 @@ from google.cloud.orchestration.airflow import service_v1
 from cloudcomposerdiff.lib.service import GCPComposerService
 
 
-def test_gcp_composer_service_construction():
+def test_gcp_composer_service_construction() -> None:
     service: GCPComposerService = GCPComposerService("projectid", "location", "name")
     assert service.name == f"projects/projectid/locations/location/environments/name"
 
 
-def test_gcp_composer_service_fetch_env():
+def test_gcp_composer_service_fetch_env() -> None:
     service: GCPComposerService = GCPComposerService("projectid", "location", "name")
     service.fetch_env = MagicMock(
         return_value=service_v1.types.Environment(
