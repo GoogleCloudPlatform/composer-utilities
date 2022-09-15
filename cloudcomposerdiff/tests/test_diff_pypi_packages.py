@@ -30,12 +30,10 @@ def test_diff_pypi_packages_strategy():
                     "software_config": service_v1.types.SoftwareConfig(
                         {
                             "image_version": "123",
-                            "airflow_config_overrides" : {
-                                "webserver-dag_orientation" : "LR"
+                            "airflow_config_overrides": {
+                                "webserver-dag_orientation": "LR"
                             },
-                            "pypi_packages" : {
-                                "scipy":"1.9.1"
-                            }
+                            "pypi_packages": {"scipy": "1.9.1"},
                         }
                     )
                 }
@@ -49,12 +47,10 @@ def test_diff_pypi_packages_strategy():
                     "software_config": service_v1.types.SoftwareConfig(
                         {
                             "image_version": "456",
-                            "airflow_config_overrides" : {
-                                "webserver-dag_orientation" : "TB"
+                            "airflow_config_overrides": {
+                                "webserver-dag_orientation": "TB"
                             },
-                            "pypi_packages" : {
-                                "scipy":"1.8.0"
-                            }                                                       
+                            "pypi_packages": {"scipy": "1.8.0"},
                         }
                     )
                 }

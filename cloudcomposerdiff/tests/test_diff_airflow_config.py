@@ -30,9 +30,9 @@ def test_diff_airflow_config_strategy():
                     "software_config": service_v1.types.SoftwareConfig(
                         {
                             "image_version": "123",
-                            "airflow_config_overrides" : {
-                                "webserver-dag_orientation" : "LR"
-                            }
+                            "airflow_config_overrides": {
+                                "webserver-dag_orientation": "LR"
+                            },
                         }
                     )
                 }
@@ -46,9 +46,9 @@ def test_diff_airflow_config_strategy():
                     "software_config": service_v1.types.SoftwareConfig(
                         {
                             "image_version": "456",
-                            "airflow_config_overrides" : {
-                                "webserver-dag_orientation" : "TB"
-                            }                            
+                            "airflow_config_overrides": {
+                                "webserver-dag_orientation": "TB"
+                            },
                         }
                     )
                 }
