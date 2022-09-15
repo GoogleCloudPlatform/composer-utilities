@@ -22,8 +22,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
-from cloudcomposerdiff.lib.strategies.strategy import \
-    EnvironmentAttributeDiffer
+from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 
 class EnvironmentComparator:

@@ -20,8 +20,7 @@ from typing import Dict, List
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
-from cloudcomposerdiff.lib.strategies.strategy import \
-    EnvironmentAttributeDiffer
+from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 
 class DiffPyPiPackages(EnvironmentAttributeDiffer):

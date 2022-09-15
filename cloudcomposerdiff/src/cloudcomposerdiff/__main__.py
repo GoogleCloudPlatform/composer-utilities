@@ -19,13 +19,10 @@ from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.comparator import EnvironmentComparator
 from cloudcomposerdiff.lib.service import GCPComposerService
-from cloudcomposerdiff.lib.strategies.diff_airflow_config import \
-    DiffAirflowConfig
+from cloudcomposerdiff.lib.strategies.diff_airflow_config import DiffAirflowConfig
 from cloudcomposerdiff.lib.strategies.diff_env_image import DiffEnvImage
-from cloudcomposerdiff.lib.strategies.diff_env_variables import \
-    DiffEnvVariables
-from cloudcomposerdiff.lib.strategies.diff_pypi_packages import \
-    DiffPyPiPackages
+from cloudcomposerdiff.lib.strategies.diff_env_variables import DiffEnvVariables
+from cloudcomposerdiff.lib.strategies.diff_pypi_packages import DiffPyPiPackages
 
 from . import __version__
 

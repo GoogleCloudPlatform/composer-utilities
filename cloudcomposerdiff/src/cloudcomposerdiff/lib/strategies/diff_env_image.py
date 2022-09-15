@@ -19,8 +19,7 @@ from typing import List
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
-from cloudcomposerdiff.lib.strategies.strategy import \
-    EnvironmentAttributeDiffer
+from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 
 class DiffEnvImage(EnvironmentAttributeDiffer):
