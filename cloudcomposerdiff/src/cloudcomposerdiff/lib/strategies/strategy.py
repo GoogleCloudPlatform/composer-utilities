@@ -15,7 +15,7 @@
  """
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Self
 
 from google.cloud.orchestration.airflow import service_v1
 
@@ -25,6 +25,6 @@ from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 class EnvironmentAttributeDiffer(ABC):
     @abstractmethod
     def detect_difference(
-        self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
+        self: Self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
         pass

@@ -18,7 +18,6 @@ import click
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.comparator import EnvironmentComparator
-from cloudcomposerdiff.lib.service import GCPComposerService
 from cloudcomposerdiff.lib.strategies.diff_airflow_config import DiffAirflowConfig
 from cloudcomposerdiff.lib.strategies.diff_env_image import DiffEnvImage
 from cloudcomposerdiff.lib.strategies.diff_env_variables import DiffEnvVariables
@@ -76,7 +75,7 @@ def main(
     env2_location: str,
     env2_name: str,
     json_output: bool,
-):
+) -> None:
     """The cloudcomposerdiff tool for comparing Cloud Composer environments."""
 
     env1: service_v1.types.Environment = service_v1.EnvironmentsClient().get_environment(

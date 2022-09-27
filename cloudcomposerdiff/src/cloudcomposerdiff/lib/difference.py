@@ -14,15 +14,17 @@
  limitations under the License.
  """
 
+from typing import Self
+
 
 class EnvironmentAttributeDiff:
     def __init__(
-        self,
+        self: Self,
         category_of_diff: str,
         diff_anchor: str,
         env_1_anchor_value: str,
         env_2_anchor_value: str,
-    ):
+    ) -> None:
         self.category_of_diff: str = category_of_diff
         self.diff_anchor = diff_anchor
         self.env_1_anchor_value = env_1_anchor_value

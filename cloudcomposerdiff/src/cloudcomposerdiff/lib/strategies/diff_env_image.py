@@ -14,7 +14,7 @@
  limitations under the License.
  """
 
-from typing import List
+from typing import List, Self
 
 from google.cloud.orchestration.airflow import service_v1
 
@@ -24,7 +24,7 @@ from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 class DiffEnvImage(EnvironmentAttributeDiffer):
     def detect_difference(
-        self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
+        self: Self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
         image1: str = env1.config.software_config.image_version
         image2: str = env2.config.software_config.image_version

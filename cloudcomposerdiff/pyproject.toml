@@ -16,7 +16,16 @@ dependencies = [
 cloudcomposerdiff = "cloudcomposerdiff.__main__:main"
 
 [project.optional-dependencies]
-dev = ["black", "bumpver", "isort", "pip-tools", "pytest", "flake8"]
+dev = [
+    "black", 
+    "bumpver", 
+    "isort", 
+    "pip-tools", 
+    "pytest", 
+    "flake8", 
+    "flake8-import-order",
+    "flake8-annotations"
+]
 
 [tool.bumpver]
 current_version = "1.0.0"
