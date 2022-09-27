@@ -23,7 +23,7 @@ from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
-T = TypeVar('T', bound='DiffPyPiPackages')
+T = TypeVar("T", bound="DiffPyPiPackages")
 
 
 class DiffPyPiPackages(EnvironmentAttributeDiffer):

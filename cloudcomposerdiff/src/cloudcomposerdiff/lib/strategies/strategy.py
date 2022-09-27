@@ -22,7 +22,7 @@ from google.cloud.orchestration.airflow import service_v1
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
-T = TypeVar('T', bound='EnvironmentAttributeDiffer')
+T = TypeVar("T", bound="EnvironmentAttributeDiffer")
 
 
 class EnvironmentAttributeDiffer(ABC):

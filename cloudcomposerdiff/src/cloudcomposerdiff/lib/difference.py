@@ -17,7 +17,7 @@
 from typing import TypeVar
 
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
-T = TypeVar('T', bound='EnvironmentAttributeDiff')
+T = TypeVar("T", bound="EnvironmentAttributeDiff")
 
 
 class EnvironmentAttributeDiff:
