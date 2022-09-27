@@ -104,7 +104,7 @@ Navigate to the directory containing pyproject.toml
 Apply the formatter to all files recurisvely
 
 ```shell
-flake8 --max-line-length=88 src
+flake8 . --show-source --builtin=gettext --max-complexity=29 --import-order-style=pep8 --ignore=E121,E123,E126,E203,E226,E24,E266,E501,E704,W503,W504,I202 --max-line-length=88
 ```
 
 ### Adding futher dependencies
