@@ -84,7 +84,7 @@ Navigate to the directory containing pyproject.toml
 Apply the sort to all files recurisvely
 
 ```shell
-isort .
+isort . --profile=black
 ```
 
 ### Format the code with black
