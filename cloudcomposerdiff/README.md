@@ -50,7 +50,7 @@ navigate to the cloudcomposerdiff directory
 from within the cloudcomposerdiff directory run the following command
 
 ```shell
-pip install cloudcomposerdiff
+pip install .
 ```
 
 ### Authorizing the application using gcloud
@@ -79,14 +79,14 @@ cloudcomposerdiff is a command line tool.
 Details about expected inputs can be gathered by running the snippet below.
 
 ```shell
-cloudcomposerdiff --help
+python -m cloudcomposerdiff --help
 ```
 
 To compare two environments the project ID, location & name of each composer environment
 need to passed as input into the tool. 
 
 ```shell
-cloudcomposerdiff \
+python -m cloudcomposerdiff \
 --env1_project_id YOUR_PROJECT_ID \
 --env1_location YOUR_ENV1_LOCATION \
 --env1_name YOUR_ENV1_NAME \
@@ -104,7 +104,7 @@ named "cloudcomposerdiff.json". To request a JSON file, an additional flag is re
 as per the example below.
 
 ```shell
-cloudcomposerdiff \
+python -m cloudcomposerdiff \
 --env1_project_id YOUR_PROJECT_ID \
 --env1_location YOUR_ENV1_LOCATION \
 --env1_name YOUR_ENV1_NAME \
