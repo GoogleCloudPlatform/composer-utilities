@@ -8,7 +8,7 @@ cloudcomposerdiff is a python command line tool to diff two Cloud Composer envir
 
 As per the example above, this tool looks at various Cloud Composer environment
 attributes and diffs them. It shows which attributes have different values across
-environemnts, and what those values are. It also shows which attributes have a common
+environments, and what those values are. It also shows which attributes have a common
 value across environments, and what this common value is.
 
 The tool can compare the follow attributes of Cloud Composer environments:
