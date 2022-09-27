@@ -14,17 +14,20 @@
  limitations under the License.
  """
 
-from typing import List, Self
+from typing import List, TypeVar
 
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar('T', bound='DiffEnvImage')
+
 
 class DiffEnvImage(EnvironmentAttributeDiffer):
     def detect_difference(
-        self: Self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
+        self: T, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
         image1: str = env1.config.software_config.image_version
         image2: str = env2.config.software_config.image_version

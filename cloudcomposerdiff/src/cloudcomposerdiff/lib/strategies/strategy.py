@@ -15,16 +15,19 @@
  """
 
 from abc import ABC, abstractmethod
-from typing import List, Self
+from typing import List, TypeVar
 
 from google.cloud.orchestration.airflow import service_v1
 
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar('T', bound='EnvironmentAttributeDiffer')
+
 
 class EnvironmentAttributeDiffer(ABC):
     @abstractmethod
     def detect_difference(
-        self: Self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
+        self: T, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> List[EnvironmentAttributeDiff]:
         pass

@@ -14,12 +14,15 @@
  limitations under the License.
  """
 
-from typing import Self
+from typing import TypeVar
+
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar('T', bound='EnvironmentAttributeDiff')
 
 
 class EnvironmentAttributeDiff:
     def __init__(
-        self: Self,
+        self: T,
         category_of_diff: str,
         diff_anchor: str,
         env_1_anchor_value: str,

@@ -15,7 +15,7 @@
  """
 
 import json
-from typing import List, Self
+from typing import List, TypeVar
 
 from google.cloud.orchestration.airflow import service_v1
 from rich.console import Console
@@ -24,22 +24,25 @@ from rich.table import Table
 from cloudcomposerdiff.lib.difference import EnvironmentAttributeDiff
 from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar('T', bound='EnvironmentComparator')
+
 
 class EnvironmentComparator:
     def __init__(
-        self: Self, env1: service_v1.types.Environment, env2: service_v1.types.Environment
+        self: T, env1: service_v1.types.Environment, env2: service_v1.types.Environment
     ) -> None:
         self.differences: List[EnvironmentAttributeDiff] = []
         self.env1: service_v1.types.Environment = env1
         self.env2: service_v1.types.Environment = env2
 
-    def compare_environments(self: Self, strategy: EnvironmentAttributeDiffer) -> None:
+    def compare_environments(self: T, strategy: EnvironmentAttributeDiffer) -> None:
         diffs: List[EnvironmentAttributeDiff] = strategy.detect_difference(
             self.env1, self.env2
         )
         self.differences.extend(diffs)
 
-    def output_diffs_to_console(self: Self) -> None:
+    def output_diffs_to_console(self: T) -> None:
         console = Console()
         table = Table()
         table.add_column("category")
@@ -57,7 +60,7 @@ class EnvironmentComparator:
             )
         console.print(table)
 
-    def output_diffs_as_json(self: Self) -> None:
+    def output_diffs_as_json(self: T) -> None:
         with open("cloudcomposerdiff.json", "w") as write_file:
             json_data = {"differences_detected": []}
             for diff in self.differences:
