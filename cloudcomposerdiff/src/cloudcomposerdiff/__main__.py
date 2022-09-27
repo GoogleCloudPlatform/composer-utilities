@@ -79,14 +79,16 @@ def main(
 ):
     """The cloudcomposerdiff tool for comparing Cloud Composer environments."""
 
-    env1_service: GCPComposerService = GCPComposerService(
-        env1_project_id, env1_location, env1_name
+    env1: service_v1.types.Environment = service_v1.EnvironmentsClient().get_environment(
+        request=service_v1.GetEnvironmentRequest(
+            name=f"projects/{env1_project_id}/locations/{env1_location}/environments/{env1_name}"
+        )
     )
-    env1: service_v1.types.Environment = env1_service.fetch_env()
-    env2_service: GCPComposerService = GCPComposerService(
-        env2_project_id, env2_location, env2_name
+    env2: service_v1.types.Environment = service_v1.EnvironmentsClient().get_environment(
+        request=service_v1.GetEnvironmentRequest(
+            name=f"projects/{env2_project_id}/locations/{env2_location}/environments/{env2_name}"
+        )
     )
-    env2: service_v1.types.Environment = env2_service.fetch_env()
     comparator: EnvironmentComparator = EnvironmentComparator(env1, env2)
     comparator.compare_environments(strategy=DiffEnvImage())
     comparator.compare_environments(strategy=DiffAirflowConfig())
