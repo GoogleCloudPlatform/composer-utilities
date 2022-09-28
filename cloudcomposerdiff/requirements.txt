@@ -18,7 +18,7 @@ google-api-core[grpc]==2.8.2
     # via google-cloud-orchestration-airflow
 google-auth==2.9.0
     # via google-api-core
-google-cloud-orchestration-airflow==1.4.0
+google-cloud-orchestration-airflow==1.4.2
     # via cloudcomposerdiff (pyproject.toml)
 googleapis-common-protos==1.56.3
     # via
