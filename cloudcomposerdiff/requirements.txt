@@ -32,7 +32,7 @@ grpcio-status==1.47.0
     # via google-api-core
 idna==3.3
     # via requests
-proto-plus==1.20.6
+proto-plus==1.22.1
     # via google-cloud-orchestration-airflow
 protobuf==3.20.1
     # via
