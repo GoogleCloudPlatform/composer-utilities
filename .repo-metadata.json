@@ -1,0 +1,16 @@
+{
+    "name": "composer-utilities",
+    "name_pretty": "Cloud Composer Utilities",
+    "product_documentation": "LINK",
+    "client_documentation": "LINK",
+    "issue_tracker": "",
+    "release_level": "experimental",
+    "language": "python",
+    "library_type": "GAPIC_MANUAL",
+    "repo": "GoogleCloudPlatform/composer-utilities",
+    "distribution_name": "google-cloud-composer-utilities",
+    "requires_billing": true,
+    "default_version": "v1",
+    "codeowner_team": "@GoogleCloudPlatform/cloud-dpes-composer",
+    "api_shortname": "composer-utilities"
+}
