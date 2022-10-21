@@ -10,7 +10,7 @@ Thanks for stopping by to let us know something could be better!
 
 Please run down the following list and make sure you've tried the usual "quick fixes":
 
-  - Search the issues already opened: https://github.com/{{ metadata['repo']['repo'] }}/issues
+  - Search the issues already opened: https://github.com/GoogleCloudPlatform/composer-utilities/issues
   - Search StackOverflow: https://stackoverflow.com/questions/tagged/google-cloud-platform+python
 
 If you are still having issues, please be sure to include as much information as possible:
@@ -20,7 +20,7 @@ If you are still having issues, please be sure to include as much information as
   - OS type and version:
   - Python version: `python --version`
   - pip version: `pip --version`
-  - `{{ metadata['repo']['distribution_name'] }}` version: `pip show {{ metadata['repo']['distribution_name'] }}`
+  - `google-cloud-composer-utilities` version: `pip show google-cloud-composer-utilities`
 
 #### Steps to reproduce
 
