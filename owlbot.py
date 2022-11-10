@@ -38,26 +38,15 @@ s.move(templated_files, excludes=["noxfile.py", "CONTRIBUTING.rst", "setup.py", 
 s.replace(
     "renovate.json",
     """
-    "pip_requirements": {
-        "fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]
-    },
+"pip_requirements": {
+    "fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]
+},
     """,
     """
-    "pip_requirements": {
-        "fileMatch": ["requirements-test.txt"]
-    },
+"pip_requirements": {
+    "fileMatch": ["requirements-test.txt"]
+},
     """)
-s.replace(
-    ".kokoro/build.sh",
-    "export PYTHONUNBUFFERED=1",
-    """export PYTHONUNBUFFERED=1
-# Export variable to override api endpoint
-export API_ENDPOINT_OVERRIDE
-# Export variable to override api endpoint version
-export API_VERSION_OVERRIDE
-# Export dual region locations
-export DUAL_REGION_LOC_1
-export DUAL_REGION_LOC_2""")
 python.py_samples(skip_readmes=True)
 
 # ----------------------------------------------------------------------------
