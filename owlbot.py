@@ -34,12 +34,12 @@ templated_files = gcp.CommonTemplates().py_library(
     microgenerator=True,
     versions=gcp.common.detect_versions(path="./google", default_first=True),
 )
-s.move(templated_files, excludes=["setup.py", "README.rst", "noxfile.py.j2", "setup.cfg", ".kokoro/samples", ".kokoro/presubmit", ".kokoro/docs", ".kokoro/continuous", ".kokoro/docker/docs", ".kokoros/test-samples*"]) # the microgenerator has a good coveragerc file
-s.replace("renovate.json", "renovate.json")
+s.move(templated_files, excludes=["setup.py", "README.rst", "noxfile.py.j2", "setup.cfg", ".kokoro/samples", ".kokoro/presubmit", ".kokoro/docs", ".kokoro/continuous", ".kokoro/docker/docs", ".kokoros/test-samples*", "docs/*"]) # the microgenerator has a good coveragerc file
+#s.replace("renovate.json", "renovate.json")
 python.py_samples(skip_readmes=True)
 
 # ----------------------------------------------------------------------------
 # Run blacken session
 # ----------------------------------------------------------------------------
 
-s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+#s.shell.run(["nox", "-s", "blacken"], hide_output=False)
