@@ -35,7 +35,18 @@ templated_files = gcp.CommonTemplates().py_library(
     versions=gcp.common.detect_versions(path="./google", default_first=True),
 )
 s.move(templated_files, excludes=["noxfile.py", "CONTRIBUTING.rst", "setup.py", "README.rst", "noxfile.py.j2", "setup.cfg", ".kokoro/samples/*", ".kokoro/presubmit/*", ".kokoro/docs/*", ".kokoro/continuous/*", ".kokoro/docker/docs/*", ".kokoro/test-samples*", "docs/*"]) # skip setup.py and setup.cfg - those are in each utility's directory. skip kokoro testing configs
-#s.replace("renovate.json", "renovate.json")
+s.replace(
+    "renovate.json",
+    """
+    "pip_requirements": {
+        "fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]
+    },
+    """,
+    """
+    "pip_requirements": {
+        "fileMatch": ["requirements-test.txt"]
+    },
+    """)
 python.py_samples(skip_readmes=True)
 
 # ----------------------------------------------------------------------------
