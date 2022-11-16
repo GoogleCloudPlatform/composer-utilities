@@ -58,8 +58,7 @@ s.move(
         "docs/*",
         "testing/*",
         "scripts/readme-gen/*",
-        ".github/CODEOWNERS",
-        "*/noxfile.py"
+        ".github/CODEOWNERS"
     ],
 )
 s.replace(
