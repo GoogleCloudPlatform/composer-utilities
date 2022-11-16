@@ -34,15 +34,39 @@ templated_files = gcp.CommonTemplates().py_library(
     microgenerator=True,
     versions=gcp.common.detect_versions(path="./google", default_first=True),
 )
-s.move(templated_files, excludes=["noxfile.py", "CONTRIBUTING.rst", "setup.py", "README.rst", "noxfile.py.j2", "setup.cfg", ".kokoro/samples/*", ".kokoro/presubmit/*", ".kokoro/docs/*", ".kokoro/continuous/*", ".kokoro/docker/docs/*", ".kokoro/test-samples*", "docs/*"]) # skip setup.py and setup.cfg - those are in each utility's directory. skip kokoro testing configs
+# skip setup.py and setup.cfg - those are in each utility's directory
+# skip kokoro testing configs as of now we are not using kokoro for tests
+# skip readme generation - our readmes are manual
+# skip testing directory
+s.move(
+    templated_files,
+    excludes=[
+        "noxfile.py",
+        "CONTRIBUTING.rst",
+        "setup.py",
+        "README.rst",
+        "noxfile.py.j2",
+        "setup.cfg",
+        ".kokoro/samples/*",
+        ".kokoro/presubmit/*",
+        ".kokoro/docs/*",
+        ".kokoro/continuous/*",
+        ".kokoro/docker/docs/*",
+        ".kokoro/test-samples*",
+        "docs/*",
+        "testing/*",
+        "scripts/readme-gen/*",
+    ],
+)
 s.replace(
     "renovate.json",
-    "\"fileMatch\": [\"requirements-test.txt\", \"samples/[\\S/]*constraints.txt\", \"samples/[\\S/]*constraints-test.txt\"]",
-    "\"fileMatch\": [\"requirements-test.txt\"]")
+    '"fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]',
+    '"fileMatch": ["requirements-test.txt"]',
+)
 python.py_samples(skip_readmes=True)
 
 # ----------------------------------------------------------------------------
 # Run blacken session
 # ----------------------------------------------------------------------------
 
-#s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+# s.shell.run(["nox", "-s", "blacken"], hide_output=False)
