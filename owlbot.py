@@ -59,7 +59,8 @@ s.move(
         "testing/*",
         "scripts/readme-gen/*",
         ".github/CODEOWNERS",
-        "setup.cfg"
+        "setup.cfg",
+        ".github/workflows/*"
     ],
 )
 s.replace(
