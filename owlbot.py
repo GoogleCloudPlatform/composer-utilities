@@ -38,6 +38,8 @@ templated_files = gcp.CommonTemplates().py_library(
 # skip kokoro testing configs as of now we are not using kokoro for tests
 # skip readme generation - our readmes are manual
 # skip testing directory
+# skip codeowners - ours is nonstandard
+# skip noxfiles for subdirectories
 s.move(
     templated_files,
     excludes=[
@@ -56,7 +58,8 @@ s.move(
         "docs/*",
         "testing/*",
         "scripts/readme-gen/*",
-        ".github/CODEOWNERS"
+        ".github/CODEOWNERS",
+        "*/noxfile.py"
     ],
 )
 s.replace(
