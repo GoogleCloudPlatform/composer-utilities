@@ -1,10 +1,11 @@
 {
   "extends": [
-    "config:base"
+    "config:base",
+    "group:all",
+    ":preserveSemverRanges",
+    ":disableDependencyDashboard"
   ],
-  "prConcurrentLimit": 0,
-  "rebaseWhen": "never",
-  "masterIssue": true,
+  "ignorePaths": [".pre-commit-config.yaml", ".kokoro/requirements.txt", "setup.py"],
   "pip_requirements": {
     "fileMatch": ["requirements-test.txt"]
   }
