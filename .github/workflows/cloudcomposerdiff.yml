@@ -6,8 +6,10 @@ name: Cloud Composer Diff CI
 on:
   # Triggers the workflow on push or pull request events but only for changes to the cloudcomposerdiff directory
   push:
+    branches: ["main"]
     paths: ["cloudcomposerdiff/**"]
   pull_request:
+    branches: ["main"]
     paths: ["cloudcomposerdiff/**"]
 
 
