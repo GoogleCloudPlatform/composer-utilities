@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START composer_hadoop_tutorial_airflow_1]
 """Example Airflow DAG that creates a Cloud Dataproc cluster, runs the Hadoop
 wordcount example, and deletes the cluster.
 
@@ -69,14 +68,12 @@ default_dag_args = {
     "project_id": models.Variable.get("gcp_project"),
 }
 
-# [START composer_hadoop_schedule_airflow_1]
 with models.DAG(
     "composer_hadoop_tutorial",
     # Continue to run DAG once per day
     schedule_interval=datetime.timedelta(days=1),
     default_args=default_dag_args,
 ) as dag:
-    # [END composer_hadoop_schedule_airflow_1]
 
     # Create a Cloud Dataproc cluster.
     create_dataproc_cluster = dataproc_operator.DataprocClusterCreateOperator(
@@ -108,9 +105,6 @@ with models.DAG(
         trigger_rule=trigger_rule.TriggerRule.ALL_DONE,
     )
 
-    # [START composer_hadoop_steps_airflow_1]
     # Define DAG dependencies.
     create_dataproc_cluster >> run_dataproc_hadoop >> delete_dataproc_cluster
-    # [END composer_hadoop_steps_airflow_1]
 
-# [END composer_hadoop_tutorial_airflow_1]

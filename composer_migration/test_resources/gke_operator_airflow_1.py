@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-# [START composer_gkeoperator_airflow_1]
 
 
 from airflow import models
@@ -33,22 +32,13 @@ with models.DAG(
     tags=["example"],
 ) as dag:
 
-    # [START composer_gke_create_cluster_airflow_1]
-    # [START composer_gkeoperator_minconfig_airflow_1]
-    # [START composer_gkeoperator_templateconfig_airflow_1]
-    # [START composer_gkeoperator_affinity_airflow_1]
-    # [START composer_gkeoperator_fullconfig_airflow_1]
+
     # TODO(developer): update with your values
-    PROJECT_ID = "leah-playground"
-    CLUSTER_ZONE = "us-west1-a"
-    CLUSTER_NAME = "example-cluster"
-    # [END composer_gkeoperator_minconfig_airflow_1]
-    # [END composer_gkeoperator_templateconfig_airflow_1]
-    # [END composer_gkeoperator_affinity_airflow_1]
-    # [END composer_gkeoperator_fullconfig_airflow_1]
+    PROJECT_ID = "YOUR_PROJECT"
+    CLUSTER_ZONE = "YOUR_ZONE"
+    CLUSTER_NAME = "YOUR_CLUSTER"
     CLUSTER = {"name": CLUSTER_NAME, "initial_node_count": 1}
-    # [END composer_gke_create_cluster_airflow_1]
-    # [START composer_gke_create_cluster_airflow_1]
+
     create_cluster = GKECreateClusterOperator(
         task_id="create_cluster",
         project_id=PROJECT_ID,
@@ -70,9 +60,7 @@ with models.DAG(
                         --num-nodes 1 \
                         --zone {CLUSTER_ZONE}",
     )
-    # [END composer_gke_create_cluster_airflow_1]
 
-    # [START composer_gkeoperator_minconfig_airflow_1]
     kubernetes_min_pod = GKEStartPodOperator(
         # The ID specified for the task.
         task_id="pod-ex-minimum",
@@ -95,9 +83,7 @@ with models.DAG(
         # (the default service account has permission)
         image="gcr.io/gcp-runtimes/ubuntu_18_0_4",
     )
-    # [END composer_gkeoperator_minconfig_airflow_1]
 
-    # [START composer_gkeoperator_templateconfig_airflow_1]
     kubenetes_template_ex = GKEStartPodOperator(
         task_id="ex-kube-templates",
         name="ex-kube-templates",
@@ -123,9 +109,7 @@ with models.DAG(
         # `my_value` is not set in the Airflow UI.
         env_vars={"MY_VALUE": "{{ var.value.my_value }}"},
     )
-    # [END composer_gkeoperator_templateconfig_airflow_1]
 
-    # [START composer_gkeoperator_affinity_airflow_1]
     kubernetes_affinity_ex = GKEStartPodOperator(
         task_id="ex-pod-affinity",
         project_id=PROJECT_ID,
@@ -173,8 +157,7 @@ with models.DAG(
             }
         },
     )
-    # [END composer_gkeoperator_affinity_airflow_1]
-    # [START composer_gkeoperator_fullconfig_airflow_1]
+
     kubernetes_full_pod = GKEStartPodOperator(
         task_id="ex-all-configs",
         name="full",
@@ -231,19 +214,16 @@ with models.DAG(
         # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
         affinity={},
     )
-    # [END composer_gkeoperator_fullconfig_airflow_1]
-    # [START composer_gkeoperator_delete_cluster_airflow_1]
+
     delete_cluster = GKEDeleteClusterOperator(
         task_id="delete_cluster",
         name=CLUSTER_NAME,
         project_id=PROJECT_ID,
         location=CLUSTER_ZONE,
     )
-    # [END composer_gkeoperator_delete_cluster_airflow_1]
 
     create_cluster >> create_node_pools >> kubernetes_min_pod >> delete_cluster
     create_cluster >> create_node_pools >> kubernetes_full_pod >> delete_cluster
     create_cluster >> create_node_pools >> kubernetes_affinity_ex >> delete_cluster
     create_cluster >> create_node_pools >> kubenetes_template_ex >> delete_cluster
 
-# [END composer_gkeoperator_airflow_1]

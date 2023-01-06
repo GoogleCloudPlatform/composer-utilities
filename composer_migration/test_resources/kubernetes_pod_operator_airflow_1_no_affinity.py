@@ -14,7 +14,6 @@
 
 """An example DAG demonstrating Kubernetes Pod Operator."""
 
-# [START composer_kubernetespodoperator_airflow_1]
 import datetime
 
 from airflow import models
@@ -28,7 +27,6 @@ from airflow.contrib.operators import kubernetes_pod_operator
 # more control over how it is used, and reduces the risk of accidental
 # exposure.
 
-# [START composer_kubernetespodoperator_secretobject_airflow_1]
 secret_env = secret.Secret(
     # Expose the secret as environment variable.
     deploy_type="env",
@@ -49,7 +47,6 @@ secret_volume = secret.Secret(
     # Key in the form of service account file name
     key="service-account.json",
 )
-# [END composer_kubernetespodoperator_secretobject_airflow_1]
 
 # If you are running Airflow in more than one time zone
 # see https://airflow.apache.org/docs/apache-airflow/stable/timezone.html
@@ -71,7 +68,6 @@ with models.DAG(
     # credentials for Cloud Composer's Google Kubernetes Engine cluster that is
     # created upon environment creation.
 
-    # [START composer_kubernetespodoperator_minconfig_airflow_1]
     kubernetes_min_pod = kubernetes_pod_operator.KubernetesPodOperator(
         # The ID specified for the task.
         task_id="pod-ex-minimum",
@@ -95,8 +91,6 @@ with models.DAG(
         # (the default service account has permission)
         image="gcr.io/gcp-runtimes/ubuntu_18_0_4",
     )
-    # [END composer_kubernetespodoperator_minconfig_airflow_1]
-    # [START composer_kubernetespodoperator_secretconfig_airflow_1]
     kubernetes_secret_vars_ex = kubernetes_pod_operator.KubernetesPodOperator(
         task_id="ex-kube-secrets",
         name="ex-kube-secrets",
@@ -113,10 +107,7 @@ with models.DAG(
             "GOOGLE_APPLICATION_CREDENTIALS": "/var/secrets/google/service-account.json ",
         },
     )
-    # [END composer_kubernetespodoperator_secretconfig_airflow_1]
-    # [START composer_kubernetespodaffinity_airflow_1]
 
-    # [START composer_kubernetespodoperator_fullconfig_airflow_1]
     kubernetes_full_pod = kubernetes_pod_operator.KubernetesPodOperator(
         task_id="ex-all-configs",
         name="pi",
@@ -173,5 +164,3 @@ with models.DAG(
         # https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
         affinity={},
     )
-    # [END composer_kubernetespodoperator_fullconfig_airflow_1]
-    # [END composer_kubernetespodoperator_airflow_1]
