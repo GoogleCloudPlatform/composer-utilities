@@ -27,7 +27,7 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
 from composer_migration.lib.comparator import DAGComparator
 
 
-def run_checks(gcp_project, composer_environment, location):
+def run_checks(gcp_project: str, composer_environment: str, location: str) -> None:
     # get bucket where dags are stored
     try:
         composer_env_info = subprocess.run(

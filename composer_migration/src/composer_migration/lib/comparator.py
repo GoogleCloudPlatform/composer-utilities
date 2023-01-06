@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, TypeVar
 import logging
 import os
 
@@ -24,13 +24,16 @@ from rich.console import Group
 from rich.text import Text
 from rich.panel import Panel
 
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar("T", bound="DAGComparator")
+
 
 class DAGComparator:
-    def __init__(self, dags_directory: str) -> None:
+    def __init__(self: T, dags_directory: str) -> None:
         self.problem_operators: List[str] = []
         self.dags_directory = dags_directory
 
-    def check_dag_files(self, strategy: DAGChecker) -> None:
+    def check_dag_files(self: T, strategy: DAGChecker) -> None:
         dags_dir = os.listdir(self.dags_directory)
         console = Console()
         problems: List[str] = []

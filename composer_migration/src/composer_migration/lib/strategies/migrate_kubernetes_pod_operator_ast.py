@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List
+from typing import List, TypeVar
 import ast
 import logging
 
-# TODO: adjust this import as needed
 from composer_migration.lib.strategies.strategy import DAGChecker
+
+# https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
+T = TypeVar("T", bound="CheckKubernetesPodOperator")
 
 
 # just visit needed nodes per
@@ -28,43 +30,43 @@ from composer_migration.lib.strategies.strategy import DAGChecker
 # KubernetesPodOperator objects will only ever be under an "Assign"
 # This traverses the tree and adds all "Assign" nodes to a list
 class AssignFinder(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self: ast.NodeVisitor) -> None:
         self.possible_kpo_nodes = []
 
-    def visit_Assign(self, node):
+    def visit_Assign(self: ast.NodeVisitor, node: ast.Assign) -> None:
         self.possible_kpo_nodes.append(node)
         self.generic_visit(node)
 
 
-# This should only be used on nodes of type "ast.Assign"
+# This should only be used on subtrees of nodes of type "ast.Assign"
 class KPOFinder(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self: ast.NodeVisitor) -> None:
         self.has_problem = False
         self.kpo_attribute = False
 
-    def visit_value(self, node):
+    def visit_value(self: ast.NodeVisitor, node: ast.value) -> None:
         self.generic_visit(node)
 
-    def visit_Call(self, node):
+    def visit_Call(self: ast.NodeVisitor, node: ast.Call) -> None:
         self.generic_visit(node)
 
     # Airflow 2 nodes will determine this way
-    def visit_Name(self, node):
+    def visit_Name(self: ast.NodeVisitor, node: ast.Name) -> None:
         if node.id == "KubernetesPodOperator":
             self.kpo_attribute = True
             self.generic_visit(node)
 
     # Airflow 1 nodes will determine this way
-    def visit_Attribute(self, node):
+    def visit_Attribute(self: ast.NodeVisitor, node: ast.Attribute) -> None:
         if node.attr == "KubernetesPodOperator":
             self.kpo_attribute = True
             self.generic_visit(node)
 
-    def visit_keyword(self, node):
+    def visit_keyword(self: ast.NodeVisitor, node: ast.keyword) -> None:
         if node.arg == "affinity":
             self.generic_visit(node)
 
-    def visit_Dict(self, node):
+    def visit_Dict(self: ast.NodeVisitor, node: ast.Dict) -> None:
         if len(node.keys) != 0 and self.kpo_attribute:  # This means pod affinity is set
             self.has_problem = True
             self.kpo_attribute = False
