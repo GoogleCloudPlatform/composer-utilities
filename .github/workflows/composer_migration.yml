@@ -6,8 +6,10 @@ name: Composer Migration Dag Checker CI
 on:
   # Triggers the workflow on push or pull request events but only for changes to the composer_migration directory
   push:
+    branches: ["main"]
     paths: ["composer_migration/**"]
   pull_request:
+    branches: ["main"]
     paths: ["composer_migration/**"]
     
 
