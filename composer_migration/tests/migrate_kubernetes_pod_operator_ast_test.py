@@ -19,7 +19,7 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
 )
 
 
-def test_find_problem_kubernetes_pod_operator():
+def test_find_problem_kubernetes_pod_operator() -> None:
     output = CheckKubernetesPodOperator.check_for_problem(
         "composer_migration/test_resources/kubernetes_pod_operator_airflow_1.py"
     )
@@ -29,7 +29,7 @@ def test_find_problem_kubernetes_pod_operator():
     assert "kubernetes_affinity_ex_gke" not in problem_operators
 
 
-def test_find_problem_kubernetes_pod_operator_no_problem():
+def test_find_problem_kubernetes_pod_operator_no_problem() -> None:
     problem_operators_airflow_1_no_affinity = (
         CheckKubernetesPodOperator.check_for_problem(
             "composer_migration/test_resources/kubernetes_pod_operator_airflow_1_no_affinity.py"

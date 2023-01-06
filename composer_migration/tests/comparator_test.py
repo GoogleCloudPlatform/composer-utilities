@@ -22,7 +22,7 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
 import pytest
 
 
-def test_check_dag_files_no_dags(caplog):
+def test_check_dag_files_no_dags(caplog: pytest.LogCaptureFixture) -> None:
     temp_dag_dir = tempfile.mkdtemp()
     comparator = DAGComparator(temp_dag_dir)
     assert comparator.problem_operators == []
@@ -33,7 +33,7 @@ def test_check_dag_files_no_dags(caplog):
     assert comparator.problem_operators == []
 
 
-def test_check_dag_files_empty_filepath():
+def test_check_dag_files_empty_filepath() -> None:
     with pytest.raises(FileNotFoundError):
         comparator = DAGComparator("")
         assert comparator.problem_operators == []

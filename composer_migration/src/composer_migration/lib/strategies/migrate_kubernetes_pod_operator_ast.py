@@ -44,7 +44,8 @@ class KPOFinder(ast.NodeVisitor):
         self.has_problem = False
         self.kpo_attribute = False
 
-    def visit_value(self: ast.NodeVisitor, node: ast.value) -> None:
+    # TODO figure out node type
+    def visit_value(self: ast.NodeVisitor, node) -> None:
         self.generic_visit(node)
 
     def visit_Call(self: ast.NodeVisitor, node: ast.Call) -> None:
