@@ -24,7 +24,7 @@ from cloudcomposerdiff.lib.strategies.strategy import EnvironmentAttributeDiffer
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
 T = TypeVar("T", bound="DiffEnvImage")
 
-
+# test comment
 class DiffEnvImage(EnvironmentAttributeDiffer):
     def detect_difference(
         self: T, env1: service_v1.types.Environment, env2: service_v1.types.Environment
