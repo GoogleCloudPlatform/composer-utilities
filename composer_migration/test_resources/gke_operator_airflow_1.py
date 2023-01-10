@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# flake8: noqa 
+# flake8: noqa
 # Ignore example dags only used for testing
 
 from airflow import models
@@ -31,7 +31,6 @@ with models.DAG(
     start_date=days_ago(1),
     tags=["example"],
 ) as dag:
-
 
     # TODO(developer): update with your values
     PROJECT_ID = "YOUR_PROJECT"
@@ -226,4 +225,3 @@ with models.DAG(
     create_cluster >> create_node_pools >> kubernetes_full_pod >> delete_cluster
     create_cluster >> create_node_pools >> kubernetes_affinity_ex >> delete_cluster
     create_cluster >> create_node_pools >> kubenetes_template_ex >> delete_cluster
-

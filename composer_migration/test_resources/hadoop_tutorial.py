@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# flake8: noqa 
+# flake8: noqa
 # Ignore example dags only used for testing
 """Example Airflow DAG that creates a Cloud Dataproc cluster, runs the Hadoop
 wordcount example, and deletes the cluster.
@@ -109,4 +109,3 @@ with models.DAG(
 
     # Define DAG dependencies.
     create_dataproc_cluster >> run_dataproc_hadoop >> delete_dataproc_cluster
-

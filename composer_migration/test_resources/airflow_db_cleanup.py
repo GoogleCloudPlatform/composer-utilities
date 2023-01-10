@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# flake8: noqa 
+# flake8: noqa
 # Ignore example dags only used for testing
 """
 A maintenance workflow that you can deploy into Airflow to periodically clean
@@ -437,4 +437,3 @@ for db_object in DATABASE_OBJECTS:
     )
 
     print_configuration.set_downstream(cleanup_op)
-
