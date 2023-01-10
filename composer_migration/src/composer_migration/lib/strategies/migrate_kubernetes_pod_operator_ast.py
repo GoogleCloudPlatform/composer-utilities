@@ -20,6 +20,7 @@ from composer_migration.lib.strategies.strategy import DAGChecker
 
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
 T = TypeVar("T", bound="CheckKubernetesPodOperator")
+A = TypeVar("A", bound="ast.AST")
 
 
 # just visit needed nodes per
@@ -44,7 +45,8 @@ class KPOFinder(ast.NodeVisitor):
         self.has_problem = False
         self.kpo_attribute = False
 
-    def visit_value(self: ast.NodeVisitor, node: Any) -> None:
+    # Binding to ast.AST means we can accept any node type
+    def visit_value(self: ast.NodeVisitor, node: A) -> None:
         print(type(node))
         self.generic_visit(node)
 
