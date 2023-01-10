@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, TypeVar
+from typing import Any, List, TypeVar
 import ast
 import logging
 
@@ -44,8 +44,8 @@ class KPOFinder(ast.NodeVisitor):
         self.has_problem = False
         self.kpo_attribute = False
 
-    # TODO figure out node type
-    def visit_value(self: ast.NodeVisitor, node) -> None:
+    def visit_value(self: ast.NodeVisitor, node: Any) -> None:
+        print(type(node))
         self.generic_visit(node)
 
     def visit_Call(self: ast.NodeVisitor, node: ast.Call) -> None:
@@ -111,6 +111,6 @@ class CheckKubernetesPodOperator(DAGChecker):
 if __name__ == "__main__":
     print(
         CheckKubernetesPodOperator.check_for_problem(
-            "test_resources/kubernetes_pod_operator_airflow_1.py"
+            "./composer_migration/test_resources/kubernetes_pod_operator_airflow_1.py"
         )
     )
