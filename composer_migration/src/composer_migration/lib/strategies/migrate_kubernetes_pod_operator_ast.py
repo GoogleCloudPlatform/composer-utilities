@@ -27,6 +27,10 @@ A = TypeVar("A", bound="ast.AST")
 # https://greentreesnakes.readthedocs.io/en/latest/manipulating.html#working-on-the-tree
 # subclass visitor for what we need
 # also derived from IBIS https://github.com/ibis-project/ibis-bigquery/blob/main/ibis_bigquery/udf/core.py
+# Style note: visit methods sometimes have snake case with capital letters which is
+# not very Pythonic - this is because they are overriding visit methods for
+# particular nodes - see https://greentreesnakes.readthedocs.io/en/latest/manipulating.html#modifying-the-tree
+# for more info
 
 # KubernetesPodOperator objects will only ever be under an "Assign"
 # This traverses the tree and adds all "Assign" nodes to a list
