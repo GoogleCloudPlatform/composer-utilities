@@ -230,11 +230,16 @@ with models.DAG(
         },
     )
 
+    # this operator wouldn't normally in an exclusive KPO example
+    # but it's here to validate that
+    # our check is looking at ONLY KubernetesPodOperator instances
+    # if you did actually want to run it, you would sub your values
+    # for project_id, location, and cluster_name
     kubernetes_affinity_ex_gke = GKEStartPodOperator(
         task_id="ex-pod-affinity",
-        project_id=PROJECT_ID,
-        location=CLUSTER_ZONE,
-        cluster_name=CLUSTER_NAME,
+        project_id="YOUR_PROJECT_ID",
+        location="YOUR_CLUSTER_ZONE",
+        cluster_name="YOUR_CLUSTER_NAME",
         name="ex-pod-affinity",
         namespace="default",
         image="perl",

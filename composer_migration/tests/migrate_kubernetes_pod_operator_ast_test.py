@@ -26,6 +26,7 @@ def test_find_problem_kubernetes_pod_operator() -> None:
     problem_operators = output["nodes"]
     assert "kubernetes_affinity_ex" in problem_operators
     assert "kubernetes_affinity_ex_2" in problem_operators
+    # this affirms that it's okay to have affinity if it's in a GKEStartPodOperator
     assert "kubernetes_affinity_ex_gke" not in problem_operators
 
 
