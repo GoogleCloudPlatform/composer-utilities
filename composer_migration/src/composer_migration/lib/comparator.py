@@ -53,28 +53,25 @@ class DAGComparator:
                         problems.append((dag_file, operator))
             self.problem_operators += problems
 
-            # make the output pretty
-            if output:
-                table = Table(show_header=True, header_style="bold magenta")
-                table.add_column("DAG")
-                table.add_column("Operator")
-                show_table = (
-                    False  # if there are no problems at all, don't show the table
-                )
-                if len(self.problem_operators) > 0:
-                    show_table = True
-                    for operator in self.problem_operators:
-                        table.add_row(operator[0], operator[1])
-                if show_table:
-                    table_text = Text(output["text"])
-                    panel_group = Group(table_text, table)
-                    console.print(Panel(panel_group, title=output["title"]))
-                else:
-                    table_text = Text("No problem operators found")
-                    console.print(Panel(table_text, title=output["title"]))
-
-            else:
+            if not output:
                 logging.error("No output from strategy, double check strategy name")
-
-            # reset problem operators before doing next check
+                return
+            table = Table(show_header=True, header_style="bold magenta")
+            table.add_column("DAG")
+            table.add_column("Operator")
+            show_table = (
+                False  # if there are no problems at all, don't show the table
+            )
+            if len(self.problem_operators) > 0:
+                show_table = True
+            for operator in self.problem_operators:
+                table.add_row(operator[0], operator[1])
+            if show_table:
+                table_text = Text(output["text"])
+                panel_group = Group(table_text, table)
+                console.print(Panel(panel_group, title=output["title"]))
+            else:
+                table_text = Text("No problem operators found")
+                console.print(Panel(table_text, title=output["title"]))  
+        # reset problem operators before doing next check
         self.problem_operators = []
