@@ -59,9 +59,7 @@ class DAGComparator:
             table = Table(show_header=True, header_style="bold magenta")
             table.add_column("DAG")
             table.add_column("Operator")
-            show_table = (
-                False  # if there are no problems at all, don't show the table
-            )
+            show_table = False  # if there are no problems at all, don't show the table
             if len(self.problem_operators) > 0:
                 show_table = True
             for operator in self.problem_operators:
@@ -72,6 +70,6 @@ class DAGComparator:
                 console.print(Panel(panel_group, title=output["title"]))
             else:
                 table_text = Text("No problem operators found")
-                console.print(Panel(table_text, title=output["title"]))  
+                console.print(Panel(table_text, title=output["title"]))
         # reset problem operators before doing next check
         self.problem_operators = []
