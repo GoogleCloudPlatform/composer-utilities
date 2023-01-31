@@ -25,31 +25,22 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
     CheckKubernetesPodOperator,
 )
 from composer_migration.lib.comparator import DAGComparator
+from google.cloud.orchestration.airflow import service_v1
+from google.api_core.exceptions import InvalidArgument
 
 
 def run_checks(gcp_project: str, composer_environment: str, location: str) -> None:
-    # get bucket where dags are stored
+    # get bucket where dags are stored with the Composer client library
     try:
-        composer_env_info = subprocess.run(
-            [
-                "gcloud",
-                "composer",
-                "environments",
-                "describe",
-                composer_environment,
-                "--project",
-                gcp_project,
-                "--location",
-                location,
-            ],
-            capture_output=True,
-        )
-        # using the format filter does not work properly with subprocess so we have to use regex
+        composer_env_info = service_v1.EnvironmentsClient().get_environment(
+            request=service_v1.GetEnvironmentRequest(
+                name=f"projects/{gcp_project}/locations/{location}/environments/{composer_environment}"
+            )
+        )        
         logging.debug(composer_env_info)
-        dags_bucket = re.findall(r"gs:\/\/\S*\/dags", str(composer_env_info.stdout))
+        dags_bucket = composer_env_info.config.dag_gcs_prefix
         logging.debug(dags_bucket)
-        dags_bucket = dags_bucket[0]
-    except subprocess.CalledProcessError:
+    except InvalidArgument:
         raise
 
     # store dags locally in a temp directory
@@ -88,4 +79,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         parser.print_help()
     else:
+        logging.basicConfig(level=logging.DEBUG)
         run_checks(args.project, args.source_env, args.location)
+
