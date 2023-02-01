@@ -14,7 +14,7 @@
 
 
 from abc import ABC, abstractmethod
-from typing import List, TypeVar
+from typing import TypeVar
 
 
 # Anthony's examle
@@ -22,9 +22,12 @@ from typing import List, TypeVar
 T = TypeVar("T", bound="DAGChecker")
 
 
-# Will take in the name of a DAG file in our temporary directory
-# Outputs the name of the operator with the problem
+# Takes in the name of a DAG file in our temporary directory
+# The concrete implementation the abstract method will check
+# for operators in the DAG file with that concrete problem
+# Outputs a dict with the name of any operators with the problem
+# and info to make it more human readable
 class DAGChecker(ABC):
     @abstractmethod
-    def check_for_problem(self: T, dag: str) -> List[str]:
+    def check_for_problem(self: T, dag: str) -> dict:
         pass
