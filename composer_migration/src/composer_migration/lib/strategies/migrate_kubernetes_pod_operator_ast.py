@@ -80,7 +80,7 @@ class KPOFinder(ast.NodeVisitor):
 
 
 class CheckKubernetesPodOperator(DAGChecker):
-    def check_for_problem(file: str) -> List[str]:
+    def check_for_problem(file: str) -> dict:
         TABLE_TITLE = "KubernetesPodOperator Affinity Check"
         TABLE_TEXT = "Node pools are not supported with the KubernetesPodOperator in Composer 2. Refactor the following DAGs to use the GKE Operators to launch your pod in a new cluster, or remove the 'affinity' field from your operator. See https://cloud.google.com/composer/docs/composer-2/use-gke-operator for more information on using the GKE operators in Cloud Composer."
         # read dag in as a string
