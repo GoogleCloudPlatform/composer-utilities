@@ -16,7 +16,6 @@
 import argparse
 import logging
 import subprocess
-import re
 import tempfile
 import os
 import sys
@@ -24,7 +23,7 @@ import sys
 from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast import (
     CheckKubernetesPodOperator,
 )
-from composer_migration.lib.comparator import DAGComparator
+from composer_migration.lib.comparator import DAGsComparator
 from google.cloud.orchestration.airflow import service_v1
 from google.api_core.exceptions import InvalidArgument
 
@@ -36,7 +35,7 @@ def run_checks(gcp_project: str, composer_environment: str, location: str) -> No
             request=service_v1.GetEnvironmentRequest(
                 name=f"projects/{gcp_project}/locations/{location}/environments/{composer_environment}"
             )
-        )        
+        )
         logging.debug(composer_env_info)
         dags_bucket = composer_env_info.config.dag_gcs_prefix
         logging.debug(dags_bucket)
@@ -55,7 +54,7 @@ def run_checks(gcp_project: str, composer_environment: str, location: str) -> No
     except subprocess.CalledProcessError:
         raise
 
-    comparator: DAGComparator = DAGComparator(temp_dag_dir)
+    comparator: DAGsComparator = DAGsComparator(temp_dag_dir)
     comparator.check_dag_files(strategy=CheckKubernetesPodOperator)
 
 
@@ -81,4 +80,3 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=logging.DEBUG)
         run_checks(args.project, args.source_env, args.location)
-

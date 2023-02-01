@@ -25,10 +25,10 @@ from rich.text import Text
 from rich.panel import Panel
 
 # https://peps.python.org/pep-0484/#annotating-instance-and-class-methods
-T = TypeVar("T", bound="DAGComparator")
+T = TypeVar("T", bound="DAGsComparator")
 
 
-class DAGComparator:
+class DAGsComparator:
     def __init__(self: T, dags_directory: str) -> None:
         self.problem_operators: List[str] = []
         self.dags_directory = dags_directory

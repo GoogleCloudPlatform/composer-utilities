@@ -14,7 +14,7 @@
 
 import tempfile
 
-from composer_migration.lib.comparator import DAGComparator
+from composer_migration.lib.comparator import DAGsComparator
 from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast import (
     CheckKubernetesPodOperator,
 )
@@ -24,7 +24,7 @@ import pytest
 
 def test_check_dag_files_no_dags(caplog: pytest.LogCaptureFixture) -> None:
     temp_dag_dir = tempfile.mkdtemp()
-    comparator = DAGComparator(temp_dag_dir)
+    comparator = DAGsComparator(temp_dag_dir)
     assert comparator.problem_operators == []
 
     comparator.check_dag_files(strategy=CheckKubernetesPodOperator)
@@ -35,7 +35,7 @@ def test_check_dag_files_no_dags(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_check_dag_files_empty_filepath() -> None:
     with pytest.raises(FileNotFoundError):
-        comparator = DAGComparator("")
+        comparator = DAGsComparator("")
         assert comparator.problem_operators == []
 
         comparator.check_dag_files(strategy=CheckKubernetesPodOperator)
