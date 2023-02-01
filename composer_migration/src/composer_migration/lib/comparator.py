@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, TypeVar
+from typing import List, Tuple, TypeVar
 import logging
 import os
 
@@ -30,7 +30,7 @@ T = TypeVar("T", bound="DAGsComparator")
 
 class DAGsComparator:
     def __init__(self: T, dags_directory: str) -> None:
-        self.problem_operators: List[str] = []
+        self.problem_operators: List[Tuple(str, str)] = []
         self.dags_directory = dags_directory
 
     def check_dag_files(self: T, strategy: DAGChecker) -> None:
