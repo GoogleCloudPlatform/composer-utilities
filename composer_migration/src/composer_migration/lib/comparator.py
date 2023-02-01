@@ -31,20 +31,19 @@ T = TypeVar("T", bound="DAGsComparator")
 class DAGsComparator:
     def __init__(self: T, dags_directory: str) -> None:
         self.problem_operators: List[Tuple(str, str)] = []
-        self.dags_directory = dags_directory
+        self.dags_directory = os.listdir(dags_directory)
 
     def check_dag_files(self: T, strategy: DAGChecker) -> None:
-        dags_dir = os.listdir(self.dags_directory)
         console = Console()
         problems: List[str] = []
         output = None
-        if len(dags_dir) == 0:
+        if len(self.dags_directory) == 0:
             logging.error(
                 "No dags to check, which means no problem operators were found."
             )
             return
 
-        for dag_file in dags_dir:
+        for dag_file in self.dags_directory:
             # make a tuple with filename and operator for output
             output = strategy.check_for_problem(f"{self.dags_directory}/{dag_file}")
             this_dag_problem_operators = output["nodes"]
