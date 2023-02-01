@@ -45,7 +45,6 @@ class DAGsComparator:
             return
 
         for dag_file in self.dags_list:
-            logging.debug(f"DAG file: {dag_file}")
             # make a tuple with filename and operator for output
             output = strategy.check_for_problem(f"{self.dags_directory}/{dag_file}")
             this_dag_problem_operators = output["nodes"]
@@ -53,10 +52,11 @@ class DAGsComparator:
                 for operator in this_dag_problem_operators:
                     problems.append((dag_file, operator))
         self.problem_operators += problems
+        logging.debug(self.problem_operators)
 
-        if not output:
-            logging.error("No output from strategy, double check strategy name")
-            return
+
+    
+        
         table = Table(show_header=True, header_style="bold magenta")
         table.add_column("DAG")
         table.add_column("Operator")
