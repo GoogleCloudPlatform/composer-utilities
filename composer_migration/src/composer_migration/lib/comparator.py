@@ -47,9 +47,9 @@ class DAGsComparator:
         for dag_file in dags_dir:
             # make a tuple with filename and operator for output
             output = strategy.check_for_problem(f"{self.dags_directory}/{dag_file}")
-            problem_operators = output["nodes"]
-            if len(problem_operators) > 0:
-                for operator in problem_operators:
+            this_dag_problem_operators = output["nodes"]
+            if len(this_dag_problem_operators) > 0:
+                for operator in this_dag_problem_operators:
                     problems.append((dag_file, operator))
         self.problem_operators += problems
 
