@@ -60,7 +60,7 @@ class DAGsComparator:
         self.problem_operators.append(output_info)
         logging.debug(self.problem_operators)
 
-    def present_to_cli(self: T):
+    def present_to_cli(self: T) -> None:
         console = Console()
 
         for i in self.problem_operators:
