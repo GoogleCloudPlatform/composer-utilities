@@ -31,3 +31,7 @@ class DAGChecker(ABC):
     @abstractmethod
     def check_for_problem(self: T, dag: str) -> dict:
         pass
+
+    @abstractmethod
+    def table_title_text(self: T) -> dict:
+        pass

@@ -56,6 +56,7 @@ def run_checks(gcp_project: str, composer_environment: str, location: str) -> No
 
     comparator: DAGsComparator = DAGsComparator(temp_dag_dir)
     comparator.check_dag_files(strategy=CheckKubernetesPodOperator)
+    comparator.present_to_cli()
 
 
 if __name__ == "__main__":

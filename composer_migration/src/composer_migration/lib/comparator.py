@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Tuple, TypeVar
+from typing import List, TypeVar
 import logging
 import os
 
@@ -30,12 +30,11 @@ T = TypeVar("T", bound="DAGsComparator")
 
 class DAGsComparator:
     def __init__(self: T, dags_directory: str) -> None:
-        self.problem_operators: List[Tuple(str, str)] = []
+        self.problem_operators: List[dict] = []
         self.dags_directory = dags_directory
         self.dags_list = os.listdir(dags_directory)
 
     def check_dag_files(self: T, strategy: DAGChecker) -> None:
-        console = Console()
         problems: List[str] = []
         output = None
         if len(self.dags_list) == 0:
@@ -44,6 +43,7 @@ class DAGsComparator:
             )
             return
 
+        # Go through each dag and run the check
         for dag_file in self.dags_list:
             # make a tuple with filename and operator for output
             output = strategy.check_for_problem(f"{self.dags_directory}/{dag_file}")
@@ -51,26 +51,31 @@ class DAGsComparator:
             if len(this_dag_problem_operators) > 0:
                 for operator in this_dag_problem_operators:
                     problems.append((dag_file, operator))
-        self.problem_operators += problems
+        # get the table output info once
+        output_info = strategy.table_title_text()
+        output_info[
+            "operators"
+        ] = problems  # join list of operators to the relevant table info
+        logging.debug(output_info)
+        self.problem_operators.append(output_info)
         logging.debug(self.problem_operators)
 
+    def present_to_cli(self: T):
+        console = Console()
 
-    
-        
-        table = Table(show_header=True, header_style="bold magenta")
-        table.add_column("DAG")
-        table.add_column("Operator")
-        show_table = False  # if there are no problems at all, don't show the table
-        if len(self.problem_operators) > 0:
-            show_table = True
-        for operator in self.problem_operators:
-            table.add_row(operator[0], operator[1])
-        if show_table:
-            table_text = Text(output["text"])
-            panel_group = Group(table_text, table)
-            console.print(Panel(panel_group, title=output["title"]))
-        else:
-            table_text = Text("No problem operators found")
-            console.print(Panel(table_text, title=output["title"]))
-        # reset problem operators before doing next check
-        self.problem_operators = []
+        for i in self.problem_operators:
+            table = Table(show_header=True, header_style="bold magenta")
+            table.add_column("DAG")
+            table.add_column("Operator")
+            show_table = False  # if there are no problems at all, don't show the table
+            if len(i) > 0:
+                show_table = True
+            for operator in i["operators"]:
+                table.add_row(operator[0], operator[1])
+            if show_table:
+                table_text = Text(i["text"])
+                panel_group = Group(table_text, table)
+                console.print(Panel(panel_group, title=i["title"]))
+            else:
+                table_text = Text("No problem operators found")
+                console.print(Panel(table_text, title=i["title"]))
