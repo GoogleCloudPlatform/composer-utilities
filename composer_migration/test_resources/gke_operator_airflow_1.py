@@ -31,7 +31,6 @@ with models.DAG(
     start_date=days_ago(1),
     tags=["example"],
 ) as dag:
-
     # TODO(developer): update with your values
     PROJECT_ID = "YOUR_PROJECT"
     CLUSTER_ZONE = "YOUR_ZONE"

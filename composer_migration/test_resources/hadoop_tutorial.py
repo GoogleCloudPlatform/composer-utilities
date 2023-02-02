@@ -76,7 +76,6 @@ with models.DAG(
     schedule_interval=datetime.timedelta(days=1),
     default_args=default_dag_args,
 ) as dag:
-
     # Create a Cloud Dataproc cluster.
     create_dataproc_cluster = dataproc_operator.DataprocClusterCreateOperator(
         task_id="create_dataproc_cluster",
