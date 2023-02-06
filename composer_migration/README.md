@@ -5,6 +5,13 @@ This tool checks DAGs in the Composer environment for various aspects that indic
 
 - Checking for "affinity" in the KubernetesPodOperator
 
+
+**Future checks Leah hopes to incorporate**
+* Looking for usage of the K8s executor
+* Looking for more incompatible attributes of the KubernetesPodOperator
+* Wrapping Airflow 1 -> Airflow 2 checks
+
+
 ## As CLI
 ### Assumptions
 * Assumes Python 3.9 or greater is being used - versions below 3.9 are not tested
