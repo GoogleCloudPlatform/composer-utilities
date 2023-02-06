@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "composer_migration"
+version = "1.0.0"
+description = "Check DAGs for compatibility with Composer 2"
+dependencies = [
+    "rich",
+]
+
+[project.scripts]
+composer_migration = "composer_migration.migration:main"
+
+[project.optional-dependencies]
+dev = [
+    "black", 
+    "bumpver", 
+    "isort", 
+    "pip-tools", 
+    "pytest", 
+    "flake8", 
+    "flake8-import-order",
+    "flake8-annotations"
+]
+
+[tool.bumpver]
+current_version = "1.0.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "Bump version {old_version} -> {new_version}"
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
+"src/composer_migration/__init__.py" = ["{version}"]
