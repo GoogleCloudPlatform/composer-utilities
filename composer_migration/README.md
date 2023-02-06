@@ -1,9 +1,13 @@
 # Composer DAG migration
-Date readme last updated: January 5, 2023
+Date readme last updated: February 6th, 2023
+
+This tool checks DAGs in the Composer environment for various aspects that indicate compatibility with Composer 2. So far checks include:
+
+- Checking for "affinity" in the KubernetesPodOperator
 
 ## As CLI
 ### Assumptions
-* Assumes Python 3.9 is being used - versions below 3.9 are not tested
+* Assumes Python 3.9 or greater is being used - versions below 3.9 are not tested
 * Assumes authentication to gcloud
 
 ### Usage
@@ -21,6 +25,7 @@ Error message will occur if "affinity" is configured in a dag and will show whic
 
 Install pytest with `pip install pytest`
 
+
 From the top level directory run
 `pip install .` to install the package locally
 `pytest` to run the tests
@@ -31,3 +36,7 @@ To run a lint check, install flake8 and flake8 import order
 
 then run 
 `flake8 src tests --show-source --builtin=gettext --max-complexity=29 --import-order-style=pep8 --ignore=E121,E123,E126,E203,E226,E24,E266,E501,E704,W503,W504,I202 --max-line-length=88`
+
+
+## Issues
+If you run into issues, please file them on GitHub!
