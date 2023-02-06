@@ -6,5 +6,7 @@ For samples, please see [Python Docs Samples](https://github.com/GoogleCloudPlat
 ## [Cloud Composer Diff Tool](./cloudcomposerdiff)
 Takes in two Cloud Composer environments and compares their attributes
 
+## [Cloud Composer Migration Tool](./composer_migration)
+Takes in a Composer environment and analyzes the DAGs for compatibility with Composer 2
 
 
