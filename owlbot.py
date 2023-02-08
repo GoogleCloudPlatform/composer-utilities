@@ -68,9 +68,8 @@ s.replace(
     '"fileMatch": ["requirements-test.txt", "samples/[\\S/]*constraints.txt", "samples/[\\S/]*constraints-test.txt"]',
     '"fileMatch": ["requirements-test.txt"]',
 )
-python.py_samples(skip_readmes=True)
-
 # ----------------------------------------------------------------------------
+python.py_samples(skip_readmes=True, files_to_exclude=["*/noxfile.py"])
 # Run blacken session
 # ----------------------------------------------------------------------------
 
