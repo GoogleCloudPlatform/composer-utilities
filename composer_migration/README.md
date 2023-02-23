@@ -1,7 +1,7 @@
 # Composer DAG migration
 Date readme last updated: February 6th, 2023
 
-This tool checks DAGs in the Composer environment for various aspects that indicate compatibility with Composer 2. So far checks include:
+This experimental tool checks DAGs in the Composer environment for various aspects that indicate compatibility with Composer 2. So far checks include:
 
 - Checking for "affinity" in the KubernetesPodOperator
 
