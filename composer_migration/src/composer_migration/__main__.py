@@ -24,14 +24,31 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
     CheckKubernetesPodOperator,
 )
 from composer_migration.lib.comparator import DAGsComparator
+from composer_migration import version as composer_migration_version
 from google.cloud.orchestration.airflow import service_v1
+from google.api_core import client_info
 from google.api_core.exceptions import InvalidArgument
 
 
+# derived from logic in the document ai toolbox
+# https://github.com/googleapis/python-documentai-toolbox/blob/main/google/cloud/documentai_toolbox/wrappers/document.py
+def _get_composer_client():
+
+    user_agent = f"composer_utilities/{composer_migration_version.__version__}"
+
+    info = client_info.ClientInfo(
+        client_library_version=composer_migration_version.__version__,
+        user_agent=user_agent,
+    )
+
+    return service_v1.EnvironmentsClient(client_info=info)
+    #return service_v1.EnvironmentsClient()
 def run_checks(gcp_project: str, composer_environment: str, location: str) -> None:
     # get bucket where dags are stored with the Composer client library
+    client = _get_composer_client()
+    logging.debug("made it here")
     try:
-        composer_env_info = service_v1.EnvironmentsClient().get_environment(
+        composer_env_info = client.get_environment(
             request=service_v1.GetEnvironmentRequest(
                 name=f"projects/{gcp_project}/locations/{location}/environments/{composer_environment}"
             )

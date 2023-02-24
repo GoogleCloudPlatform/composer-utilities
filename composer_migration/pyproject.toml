@@ -36,3 +36,4 @@ push = true
 [tool.bumpver.file_patterns]
 "pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
 "src/composer_migration/__init__.py" = ["{version}"]
+"src/composer_migration/version.py" = ["{version}"]
