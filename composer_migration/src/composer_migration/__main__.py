@@ -26,7 +26,7 @@ from composer_migration.lib.strategies.migrate_kubernetes_pod_operator_ast impor
 from composer_migration.lib.comparator import DAGsComparator
 from composer_migration import version as composer_migration_version
 from google.cloud.orchestration.airflow import service_v1
-from google.api_core import client_info
+from google.api_core.gapic_v1 import client_info
 from google.api_core.exceptions import InvalidArgument
 
 
