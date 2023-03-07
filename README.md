@@ -3,7 +3,7 @@ This repo contains experimental utilities to help users of [Cloud Composer](http
 
 For samples, please see [Python Docs Samples](https://github.com/GoogleCloudPlatform/python-docs-samples/tree/main/composer) which contains code samples found in [Composer documentation](cloud.google.com/composer)
 
-These tools are NOT under any kind of SLO and have limited support. 
+These tools are NOT under any kind of SLO or SLA and have limited support. 
 
 ## [Cloud Composer Diff Tool](./cloudcomposerdiff)
 Takes in two Cloud Composer environments and compares their attributes
