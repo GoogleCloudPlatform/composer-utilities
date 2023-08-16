@@ -1,0 +1,7 @@
+__pycache__
+.python-version
+*.pyc
+.vscode
+.python-version
+*.egg-info
+.pytest_cache
