@@ -11,4 +11,6 @@ Takes in two Cloud Composer environments and compares their attributes
 ## [Cloud Composer Migration Tool](./composer_migration)
 Takes in a Composer environment and analyzes the DAGs for compatibility with Composer 2
 
+## [Cloud Composer DAGs](/./dags)
+Contains DAGs compatible with Airflow 2 Composer environments.
 
