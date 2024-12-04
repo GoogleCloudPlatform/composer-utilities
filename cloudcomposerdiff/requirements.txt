@@ -55,7 +55,7 @@ rich==12.4.4
     # via cloudcomposerdiff (pyproject.toml)
 rsa==4.8
     # via google-auth
-six==1.16.0
+six==1.17.0
     # via
     #   google-auth
     #   grpcio
