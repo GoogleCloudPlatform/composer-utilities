@@ -68,15 +68,15 @@ class EnvironmentComparator:
                     {
                         "category": diff.category_of_diff,
                         "attribute": diff.diff_anchor,
-                        "env_1_value": None
-                        if diff.values_match
-                        else diff.env_1_anchor_value,
-                        "env_2_value": None
-                        if diff.values_match
-                        else diff.env_2_anchor_value,
-                        "matching_value": diff.env_1_anchor_value
-                        if diff.values_match
-                        else None,
+                        "env_1_value": (
+                            None if diff.values_match else diff.env_1_anchor_value
+                        ),
+                        "env_2_value": (
+                            None if diff.values_match else diff.env_2_anchor_value
+                        ),
+                        "matching_value": (
+                            diff.env_1_anchor_value if diff.values_match else None
+                        ),
                     }
                 )
             json.dump(json_data, write_file, indent=4)
