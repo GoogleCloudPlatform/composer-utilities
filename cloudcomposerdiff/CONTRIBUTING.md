@@ -121,9 +121,10 @@ For dev-only edit project.optional-dependencies.dev section.
 
 Do not manually update requirements.txt
 
-Use a pip-tools command to sync pyproject.toml to requirements.txt
+Use a pip-tools command to sync pyproject.toml to requirements.txt - the `--upgrade` flag will force the upgrade
+
 ```shell
-pip-compile pyproject.toml
+pip-compile pyproject.toml --upgrade
 ```
 
 ### Update the version number of the package

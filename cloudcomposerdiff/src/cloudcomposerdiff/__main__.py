@@ -78,12 +78,16 @@ def main(
 ) -> None:
     """The cloudcomposerdiff tool for comparing Cloud Composer environments."""
 
-    env1: service_v1.types.Environment = service_v1.EnvironmentsClient().get_environment(
+    env1: (
+        service_v1.types.Environment
+    ) = service_v1.EnvironmentsClient().get_environment(
         request=service_v1.GetEnvironmentRequest(
             name=f"projects/{env1_project_id}/locations/{env1_location}/environments/{env1_name}"
         )
     )
-    env2: service_v1.types.Environment = service_v1.EnvironmentsClient().get_environment(
+    env2: (
+        service_v1.types.Environment
+    ) = service_v1.EnvironmentsClient().get_environment(
         request=service_v1.GetEnvironmentRequest(
             name=f"projects/{env2_project_id}/locations/{env2_location}/environments/{env2_name}"
         )
