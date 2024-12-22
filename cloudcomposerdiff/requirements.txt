@@ -61,5 +61,5 @@ rich==13.9.4
     # via cloudcomposerdiff (pyproject.toml)
 rsa==4.9
     # via google-auth
-urllib3==2.2.3
+urllib3==2.3.0
     # via requests
