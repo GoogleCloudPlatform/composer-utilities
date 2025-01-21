@@ -8,8 +8,8 @@
 # Prefer GitHub teams over individuals to make it easier to find a suitable owner
 # when someone is OOO or leaves the team.
 
-# cloud-dpes-composer is in charge of this repository with python-samples-owner as a fallback if needed
+# cyarros10 is in charge of this repository with python-samples-owner as a fallback if needed
 
-*                                      @GoogleCloudPlatform/cloud-dpes-composer
-/.github/                              @GoogleCloudPlatform/cloud-dpes-composer @GoogleCloudPlatform/python-samples-owners
+*                                      @cyarros10
+/.github/                              @cyarros10 @GoogleCloudPlatform/python-samples-owners
 
