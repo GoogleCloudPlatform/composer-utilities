@@ -11,4 +11,6 @@ Takes in two Cloud Composer environments and compares their attributes
 ## [Cloud Composer Migration Tool](./composer_migration)
 Takes in a Composer environment and analyzes the DAGs for compatibility with Composer 2
 
+## [Cloud Composer DAGs Parsing Profiler Tool](./composer_parsing_profiler)
+Profiles DAG parsing for a Composer Environment. This tool helps you optimize parsing latency, including top-level code detection
 
