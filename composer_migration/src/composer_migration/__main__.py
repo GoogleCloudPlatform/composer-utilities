@@ -47,7 +47,7 @@ def run_checks(gcp_project: str, composer_environment: str, location: str) -> No
     try:
         # Use the gsutil -m flag to parallelize the cp process
         subprocess.check_call(
-            ["gsutil", "-m", "cp", "-r", f"{dags_bucket}/*.py", temp_dag_dir]
+            ["gcloud", "storage", "cp", "--recursive", f"{dags_bucket}/*.py", temp_dag_dir]
         )
         # remove Airflow monitoring dag - this is not user maintained
         os.remove(f"{temp_dag_dir}/airflow_monitoring.py")
