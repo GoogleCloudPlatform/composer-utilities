@@ -55,7 +55,7 @@ pyasn1-modules==0.4.1
     # via google-auth
 pygments==2.18.0
     # via rich
-requests==2.32.3
+requests==2.33.0
     # via google-api-core
 rich==13.9.4
     # via cloudcomposerdiff (pyproject.toml)
