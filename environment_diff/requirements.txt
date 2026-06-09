@@ -30,7 +30,7 @@ grpcio==1.68.1
     #   grpcio-status
 grpcio-status==1.68.1
     # via google-api-core
-idna==3.10
+idna==3.15
     # via requests
 markdown-it-py==3.0.0
     # via rich
@@ -40,7 +40,7 @@ proto-plus==1.25.0
     # via
     #   google-api-core
     #   google-cloud-orchestration-airflow
-protobuf==5.29.1
+protobuf==5.29.6
     # via
     #   google-api-core
     #   google-cloud-orchestration-airflow
