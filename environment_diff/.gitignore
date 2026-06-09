@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.egg-info
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Build and testing artifacts
+build/
+dist/
+.pytest_cache/
+.eggs/
+*.egg
+.cache/

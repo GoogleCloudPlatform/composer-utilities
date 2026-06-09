@@ -5,12 +5,12 @@ For samples, please see [Python Docs Samples](https://github.com/GoogleCloudPlat
 
 These tools are NOT under any kind of SLO or SLA and have limited support. 
 
-## [Cloud Composer Diff Tool](./cloudcomposerdiff)
-Takes in two Cloud Composer environments and compares their attributes
+## [Environment Diff Tool](./environment_diff)
+Takes in two Managed Airflow environments and compares their attributes
 
-## [Cloud Composer Migration Tool](./composer_migration)
-Takes in a Composer environment and analyzes the DAGs for compatibility with Composer 2
+## [Managed Airflow (Gen1 to Gen2) Migration Tool](./migration/gen1_to_gen2)
+Takes in a Managed Airflow environment and analyzes the DAGs for compatibility with Composer 2
 
-## [Cloud Composer DAGs Parsing Profiler Tool](./composer_parsing_profiler)
-Profiles DAG parsing for a Composer Environment. This tool helps you optimize parsing latency, including top-level code detection
+## [Managed Airflow DAGs Parsing Profiler Tool](./dag_parsing_profiler)
+Profiles DAG parsing for a Managed Airflow environment. This tool helps you optimize parsing latency, including top-level code detection
 
