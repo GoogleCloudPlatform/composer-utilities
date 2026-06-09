@@ -14,3 +14,7 @@ Takes in a Managed Airflow environment and analyzes the DAGs for compatibility w
 ## [Managed Airflow DAGs Parsing Profiler Tool](./dag_parsing_profiler)
 Profiles DAG parsing for a Managed Airflow environment. This tool helps you optimize parsing latency, including top-level code detection
 
+## [Cloud Composer Control Panel](./control_panel)
+An administration dashboard to manage DAGs (pause, unpause, trigger, and bulk operations), view import errors, and edit DAG code in-browser across multiple Composer environments, projects, and regions from a single workspace.
+
+
