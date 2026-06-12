@@ -377,7 +377,9 @@ async def get_dag_content(dag_id: str, request: Request, filename: str | None = 
 
 
 @app.post("/api/dags/{dag_id}/content")
-async def update_dag_content(dag_id: str, request: Request, filename: str | None = None):
+async def update_dag_content(
+    dag_id: str, request: Request, filename: str | None = None
+):
     env_header: str | None = request.headers.get("X-Composer-Environment")
     if not env_header:
         raise HTTPException(
