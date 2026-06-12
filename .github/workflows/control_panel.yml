@@ -68,3 +68,25 @@ jobs:
         - name: Test with pytest
           run: |
             pytest control_panel/
+
+  test-frontend:
+      name: "run frontend tests"
+      runs-on: ubuntu-latest
+
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: "20"
+            cache: 'npm'
+            cache-dependency-path: control_panel/package-lock.json
+            
+        - name: Install dependencies
+          run: |
+            cd control_panel
+            npm ci
+            
+        - name: Test with npm
+          run: |
+            cd control_panel
+            npm test
