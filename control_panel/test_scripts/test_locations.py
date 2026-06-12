@@ -12,31 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from googleapiclient.discovery import build
 import json
 
+from googleapiclient.discovery import build
+
+
 def test():
-    composer_client = build('composer', 'v1')
-    project = 'YOUR_PROJECT_ID'
-    
+    composer_client = build("composer", "v1")
+    project = "YOUR_PROJECT_ID"
+
     try:
-        response = composer_client.projects().locations().list(
-            name=f"projects/{project}"
-        ).execute()
+        response = (
+            composer_client.projects()
+            .locations()
+            .list(name=f"projects/{project}")
+            .execute()
+        )
         print(json.dumps(response, indent=2))
-        
+
         # Now list environments in those locations
-        for loc in response.get('locations', []):
-            loc_id = loc['locationId']
+        for loc in response.get("locations", []):
+            loc_id = loc["locationId"]
             # Only loop a few to test
-            envs = composer_client.projects().locations().environments().list(
-                parent=f"projects/{project}/locations/{loc_id}"
-            ).execute()
-            if 'environments' in envs:
+            envs = (
+                composer_client.projects()
+                .locations()
+                .environments()
+                .list(parent=f"projects/{project}/locations/{loc_id}")
+                .execute()
+            )
+            if "environments" in envs:
                 print(f"Found environments in {loc_id}:")
-                for e in envs['environments']:
-                    print(e['name'])
+                for e in envs["environments"]:
+                    print(e["name"])
     except Exception as e:
         print(f"Error: {e}")
+
 
 test()

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import google.auth
+
 try:
     credentials, project = google.auth.default()
     print("Project from auth:", project)

@@ -12,20 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from googleapiclient.discovery import build
 import json
 
+from googleapiclient.discovery import build
+
+
 def test():
-    composer_client = build('composer', 'v1')
-    project = 'YOUR_PROJECT_ID'
-    location = 'us-central1'
-    
+    composer_client = build("composer", "v1")
+    project = "YOUR_PROJECT_ID"
+    location = "us-central1"
+
     try:
-        envs = composer_client.projects().locations().environments().list(
-            parent=f"projects/{project}/locations/{location}"
-        ).execute()
+        envs = (
+            composer_client.projects()
+            .locations()
+            .environments()
+            .list(parent=f"projects/{project}/locations/{location}")
+            .execute()
+        )
         print(json.dumps(envs, indent=2))
     except Exception as e:
         print(f"Error: {e}")
+
 
 test()

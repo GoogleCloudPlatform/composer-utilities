@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from proxy_server import app
 from fastapi.testclient import TestClient
-import pytest
+from proxy_server import app
 
 client = TestClient(app)
+
 
 def test_get_environments():
     # This test checks if the app can be initialized and the route is reachable.

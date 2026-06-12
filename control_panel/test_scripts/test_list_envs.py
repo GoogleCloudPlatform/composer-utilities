@@ -12,21 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from googleapiclient.discovery import build
 import json
 
+from googleapiclient.discovery import build
+
+
 def test():
-    composer_client = build('composer', 'v1')
-    project = 'YOUR_PROJECT_ID'
-    location = '-' # '-' lists across all locations
-    
+    composer_client = build("composer", "v1")
+    project = "YOUR_PROJECT_ID"
+    location = "-"  # '-' lists across all locations
+
     # Needs to specify location explicitly or use '-', wait let's check Composer v1 API
     try:
-        response = composer_client.projects().locations().environments().list(
-            parent=f"projects/{project}/locations/{location}"
-        ).execute()
+        response = (
+            composer_client.projects()
+            .locations()
+            .environments()
+            .list(parent=f"projects/{project}/locations/{location}")
+            .execute()
+        )
         print(json.dumps(response, indent=2))
     except Exception as e:
         print(f"Error: {e}")
+
 
 test()

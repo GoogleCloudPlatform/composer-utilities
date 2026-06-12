@@ -39,12 +39,19 @@ from google.cloud import storage
 
 class Ansi:
     """ANSI escape codes for colored terminal output."""
+
     # pylint: disable=too-few-public-methods
-    BOLD = '\033[1m'
-    RESET = '\033[0m'
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
 
 
-def download_folder(bucket: storage.Bucket, prefix: str, local_subdir: str, config: dict, report_lines: list[str]) -> int:
+def download_folder(
+    bucket: storage.Bucket,
+    prefix: str,
+    local_subdir: str,
+    config: dict,
+    report_lines: list[str],
+) -> int:
     """Downloads a directory from GCS to a local path, mirroring the structure.
 
     Args:
@@ -57,14 +64,14 @@ def download_folder(bucket: storage.Bucket, prefix: str, local_subdir: str, conf
     Returns:
         int: The number of files successfully downloaded.
     """
-    base_work_dir = config['BASE_WORK_DIR']
+    base_work_dir = config["BASE_WORK_DIR"]
     blobs = bucket.list_blobs(prefix=prefix)
     target_dir = os.path.join(base_work_dir, local_subdir)
     os.makedirs(target_dir, exist_ok=True)
 
     count = 0
     for blob in blobs:
-        if blob.name.endswith('/'):
+        if blob.name.endswith("/"):
             continue
 
         # Calculate relative path (e.g., 'plugins/hooks/my_hook.py' -> 'hooks/my_hook.py')
@@ -99,9 +106,9 @@ def parse_file(filepath: str, config: dict) -> dict:
     profiler = cProfile.Profile()
 
     # Load configuration (Snake case for local variables to satisfy pylint)
-    profile_slow = config['PROFILE_SLOW']
-    profile_sort_key = config['PROFILE_SORT_KEY']
-    parse_threshold = config['PARSE_TIME_THRESHOLD_SECONDS']
+    profile_slow = config["PROFILE_SLOW"]
+    profile_sort_key = config["PROFILE_SORT_KEY"]
+    parse_threshold = config["PARSE_TIME_THRESHOLD_SECONDS"]
 
     # Note: Temporarily disable logging to prevent plugins from printing to the console
     # during import, which would interleave with the linter's report output.
@@ -113,7 +120,9 @@ def parse_file(filepath: str, config: dict) -> dict:
 
         # Capture standard print() statements
         with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-            module_name = f"dag_linter_test.{os.path.basename(filepath).replace('.py', '')}"
+            module_name = (
+                f"dag_linter_test.{os.path.basename(filepath).replace('.py', '')}"
+            )
             spec = importlib.util.spec_from_file_location(module_name, filepath)
             if spec is None:
                 raise ImportError("Could not create module spec.")
@@ -122,9 +131,9 @@ def parse_file(filepath: str, config: dict) -> dict:
 
             # Execute module import inside profiler
             profiler.runctx(
-                'spec.loader.exec_module(module)',
+                "spec.loader.exec_module(module)",
                 globals(),
-                {"spec": spec, "module": module}
+                {"spec": spec, "module": module},
             )
 
         duration = time.monotonic() - start_time
@@ -133,30 +142,49 @@ def parse_file(filepath: str, config: dict) -> dict:
 
         # Determine Status
         if captured_stderr:
-            result = {'status': 'ERROR', 'message': "DAG generated error messages during parsing (see stderr)."}
+            result = {
+                "status": "ERROR",
+                "message": "DAG generated error messages during parsing (see stderr).",
+            }
         elif is_slow:
-            result = {'status': 'WARNING', 'duration': duration, 'message': f"Slow parse time: {duration:.4f}s."}
+            result = {
+                "status": "WARNING",
+                "duration": duration,
+                "message": f"Slow parse time: {duration:.4f}s.",
+            }
         elif not any(isinstance(var, DAG) for var in vars(module).values()):
-            result = {'status': 'WARNING', 'message': "Parsed, but no DAG objects were found."}
+            result = {
+                "status": "WARNING",
+                "message": "Parsed, but no DAG objects were found.",
+            }
         else:
-            result = {'status': 'SUCCESS', 'duration': duration, 'message': f"Parsed in {duration:.4f}s."}
+            result = {
+                "status": "SUCCESS",
+                "duration": duration,
+                "message": f"Parsed in {duration:.4f}s.",
+            }
 
         # Attach Profile Data if Slow
         if is_slow and profile_slow:
             profile_stream = io.StringIO()
-            stats = pstats.Stats(profiler, stream=profile_stream).sort_stats(profile_sort_key)
+            stats = pstats.Stats(profiler, stream=profile_stream).sort_stats(
+                profile_sort_key
+            )
             stats.print_stats(10)  # Limit to Top 10 offenders
-            result['profile_output'] = profile_stream.getvalue()
+            result["profile_output"] = profile_stream.getvalue()
 
     # pylint: disable=broad-except
     except Exception as e:
-        result = {'status': 'ERROR', 'message': f"Failed to import file. Full error: {e}"}
+        result = {
+            "status": "ERROR",
+            "message": f"Failed to import file. Full error: {e}",
+        }
     finally:
         # Restore logging configuration immediately
         logging.disable(previous_log_level)
 
-    result['stdout'] = stdout_buffer.getvalue()
-    result['stderr'] = stderr_buffer.getvalue()
+    result["stdout"] = stdout_buffer.getvalue()
+    result["stderr"] = stderr_buffer.getvalue()
     return result
 
 
@@ -171,13 +199,13 @@ def main(config_json: str):
     report_lines = ["--- Starting DAG Linter ---"]
 
     # Extract config variables
-    gcs_bucket = config['GCS_BUCKET']
-    base_work_dir = config['BASE_WORK_DIR']
-    fetch_extras = config['FETCH_EXTRAS']
+    gcs_bucket = config["GCS_BUCKET"]
+    base_work_dir = config["BASE_WORK_DIR"]
+    fetch_extras = config["FETCH_EXTRAS"]
 
-    dags_source_folder = config['GCS_DAGS_SOURCE_FOLDER']
-    plugins_source_folder = config['GCS_PLUGINS_SOURCE_FOLDER']
-    data_source_folder = config['GCS_DATA_SOURCE_FOLDER']
+    dags_source_folder = config["GCS_DAGS_SOURCE_FOLDER"]
+    plugins_source_folder = config["GCS_PLUGINS_SOURCE_FOLDER"]
+    data_source_folder = config["GCS_DATA_SOURCE_FOLDER"]
 
     # Determine Parallelism based on available CPU resources
     parallelism = max(cpu_count() - 1, 1)
@@ -201,7 +229,9 @@ def main(config_json: str):
         if fetch_extras:
             report_lines.append("Flag enabled: Fetching data/ and plugins/ folders...")
             download_folder(bucket, data_source_folder, "data", config, report_lines)
-            download_folder(bucket, plugins_source_folder, "plugins", config, report_lines)
+            download_folder(
+                bucket, plugins_source_folder, "plugins", config, report_lines
+            )
 
     # pylint: disable=broad-except
     except Exception as e:
@@ -216,10 +246,10 @@ def main(config_json: str):
             for file in files:
                 if not file.endswith(".py"):
                     continue
-                
+
                 # Exclude the orchestrator DAG and the Linter Core script
                 # to prevent recursion loops or self-parsing errors.
-                if file in ['dag_linter_kubernetes_pod.py', 'linter_core.py']:
+                if file in ["dag_linter_kubernetes_pod.py", "linter_core.py"]:
                     continue
 
                 files_to_process.append(os.path.join(root, file))
@@ -229,7 +259,9 @@ def main(config_json: str):
         print("\n".join(report_lines))
         return
 
-    report_lines.append(f"Analyzing {len(files_to_process)} Python files using {parallelism} processes...")
+    report_lines.append(
+        f"Analyzing {len(files_to_process)} Python files using {parallelism} processes..."
+    )
 
     # 4. Execute Parallel Linting
     with Pool(processes=parallelism) as pool:
@@ -237,7 +269,7 @@ def main(config_json: str):
 
     # 5. Generate Final Report
     report_lines.append("\n" + "#" * 80)
-    report_lines.append("##### Linter Report #####".center(80, ' '))
+    report_lines.append("##### Linter Report #####".center(80, " "))
     report_lines.append("#" * 80)
     has_issues = False
 
@@ -245,36 +277,42 @@ def main(config_json: str):
         filepath = files_to_process[i]
         filename = os.path.basename(filepath)
 
-        report_lines.append(f"\n{Ansi.BOLD}########## [START] Processing: {filename} ##########{Ansi.RESET}")
+        report_lines.append(
+            f"\n{Ansi.BOLD}########## [START] Processing: {filename} ##########{Ansi.RESET}"
+        )
 
-        status = res.get('status', 'ERROR')
-        message = res.get('message', 'Unknown error')
+        status = res.get("status", "ERROR")
+        message = res.get("message", "Unknown error")
 
-        if status == 'SUCCESS':
-            report_lines.append(f"    ✅ Status: SUCCESS")
-        elif status == 'WARNING':
-            report_lines.append(f"    ⚠️ Status: WARNING")
+        if status == "SUCCESS":
+            report_lines.append("    ✅ Status: SUCCESS")
+        elif status == "WARNING":
+            report_lines.append("    ⚠️ Status: WARNING")
             has_issues = True
-        elif status == 'ERROR':
-            report_lines.append(f"    🚨 Status: FAILED")
+        elif status == "ERROR":
+            report_lines.append("    🚨 Status: FAILED")
             has_issues = True
 
         report_lines.append(f"       Details: {message}")
 
-        if res.get('stdout'):
+        if res.get("stdout"):
             report_lines.append("    📋 Captured Output (stdout):")
-            for line in res['stdout'].strip().split('\n'):
+            for line in res["stdout"].strip().split("\n"):
                 report_lines.append(f"       | {line}")
-        if res.get('stderr'):
+        if res.get("stderr"):
             report_lines.append("    📋 Captured Errors (stderr):")
-            for line in res['stderr'].strip().split('\n'):
+            for line in res["stderr"].strip().split("\n"):
                 report_lines.append(f"       | {line}")
-        if res.get('profile_output'):
-            report_lines.append(f"    🔎 Performance Profile (Top 10 slowest calls by {config['PROFILE_SORT_KEY']}):")
-            for line in res['profile_output'].strip().split('\n'):
+        if res.get("profile_output"):
+            report_lines.append(
+                f"    🔎 Performance Profile (Top 10 slowest calls by {config['PROFILE_SORT_KEY']}):"
+            )
+            for line in res["profile_output"].strip().split("\n"):
                 report_lines.append(f"       | {line}")
 
-        report_lines.append(f"{Ansi.BOLD}########## [END] Processing: {filename} ##########{Ansi.RESET}")
+        report_lines.append(
+            f"{Ansi.BOLD}########## [END] Processing: {filename} ##########{Ansi.RESET}"
+        )
 
     report_lines.append("\n" + "#" * 80)
     if has_issues:

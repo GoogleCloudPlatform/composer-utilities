@@ -27,16 +27,15 @@ from __future__ import annotations
 
 import json
 import os
-import pendulum
-import requests
 
 import google.auth
-from google.auth.transport.requests import Request
-
+import pendulum
+import requests
+from airflow.exceptions import AirflowSkipException
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
-from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from google.auth.transport.requests import Request
 from kubernetes.client import models as k8s
 
 # ==============================================================================
@@ -154,7 +153,7 @@ def _verify_docker_image_v2(image_uri: str) -> bool:
 
     try:
         # 1. Parse the URI
-        parts = image_uri.split('/')
+        parts = image_uri.split("/")
         domain = parts[0]
         repo_path = "/".join(parts[1:])
 
@@ -162,25 +161,29 @@ def _verify_docker_image_v2(image_uri: str) -> bool:
         api_url = f"https://{domain}/v2/{repo_path}/manifests/latest"
 
         # 3. Authenticate
-        credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
         credentials.refresh(Request())
 
         # 4. Request Manifest
         response = requests.get(
             api_url,
-            headers={'Authorization': f'Bearer {credentials.token}'},
-            timeout=10
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            timeout=10,
         )
 
         if response.status_code == 200:
-            print(f"   ✅ Manifest found (HTTP 200). Valid Custom Image.")
+            print("   ✅ Manifest found (HTTP 200). Valid Custom Image.")
             return True
 
         if response.status_code == 404:
-            print(f"   ℹ️  Manifest not found (HTTP 404). Confirmed Vanilla Environment.")
+            print("   ℹ️  Manifest not found (HTTP 404). Confirmed Vanilla Environment.")
             return False
 
-        print(f"   ⚠️  Access Forbidden (HTTP {response.status_code}). Assuming Vanilla.")
+        print(
+            f"   ⚠️  Access Forbidden (HTTP {response.status_code}). Assuming Vanilla."
+        )
         return False
 
     except requests.RequestException as e:
@@ -190,14 +193,14 @@ def _verify_docker_image_v2(image_uri: str) -> bool:
 
 def _get_c3_image_string() -> str | None:
     """Constructs and verifies the C3 image URL."""
-    fingerprint = os.getenv('COMPOSER_OPERATION_FINGERPRINT')
-    project_id = os.getenv('GCP_TENANT_PROJECT')
-    location = os.getenv('COMPOSER_LOCATION')
+    fingerprint = os.getenv("COMPOSER_OPERATION_FINGERPRINT")
+    project_id = os.getenv("GCP_TENANT_PROJECT")
+    location = os.getenv("COMPOSER_LOCATION")
 
     if not all([fingerprint, location, project_id]):
         return None
 
-    image_uuid = fingerprint.split('@')[0]
+    image_uuid = fingerprint.split("@")[0]
     registry_domain = f"{location}-docker.pkg.dev"
 
     c3_image = f"{registry_domain}/{project_id}/composer-images/{image_uuid}"
@@ -212,18 +215,22 @@ def _get_c3_image_string() -> str | None:
 
 def _get_c2_image_api() -> str | None:
     """Queries the Google Artifact Registry API to find the latest Docker image (C2)."""
-    project_id = os.getenv('GCP_PROJECT')
-    location = os.getenv('COMPOSER_LOCATION')
-    gke_name = os.getenv('COMPOSER_GKE_NAME')
+    project_id = os.getenv("GCP_PROJECT")
+    location = os.getenv("COMPOSER_LOCATION")
+    gke_name = os.getenv("COMPOSER_GKE_NAME")
 
     if not all([project_id, location, gke_name]):
         return None
 
     repo_name = f"composer-images-{gke_name}"
-    print(f"   🔎 Querying Repo: projects/{project_id}/locations/{location}/repositories/{repo_name}")
+    print(
+        f"   🔎 Querying Repo: projects/{project_id}/locations/{location}/repositories/{repo_name}"
+    )
 
     try:
-        credentials, _ = google.auth.default(scopes=['https://www.googleapis.com/auth/cloud-platform'])
+        credentials, _ = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
         credentials.refresh(Request())
     except google.auth.exceptions.DefaultCredentialsError as e:
         print(f"   ⚠️ Authentication failed: {e}")
@@ -237,9 +244,9 @@ def _get_c2_image_api() -> str | None:
     try:
         response = requests.get(
             api_url,
-            params={'pageSize': 1, 'orderBy': 'update_time desc'},
-            headers={'Authorization': f'Bearer {credentials.token}'},
-            timeout=10
+            params={"pageSize": 1, "orderBy": "update_time desc"},
+            headers={"Authorization": f"Bearer {credentials.token}"},
+            timeout=10,
         )
 
         if response.status_code == 404:
@@ -249,9 +256,9 @@ def _get_c2_image_api() -> str | None:
         response.raise_for_status()
         data = response.json()
 
-        if 'dockerImages' in data and len(data['dockerImages']) > 0:
-            image_uri = data['dockerImages'][0]['uri']
-            clean_uri = image_uri.split('@')[0]
+        if "dockerImages" in data and len(data["dockerImages"]) > 0:
+            image_uri = data["dockerImages"][0]["uri"]
+            clean_uri = image_uri.split("@")[0]
             print(f"   ✅ Found Custom Image: {clean_uri}")
             return clean_uri
         else:
@@ -284,7 +291,7 @@ def detect_worker_image(**context) -> str:
 
     print("🔹 Manual image not configured. Attempting to detect CUSTOM image...")
 
-    c3_fingerprint = os.getenv('COMPOSER_OPERATION_FINGERPRINT')
+    c3_fingerprint = os.getenv("COMPOSER_OPERATION_FINGERPRINT")
 
     if c3_fingerprint:
         print("   Detected: Composer 3 Environment")
@@ -316,7 +323,11 @@ def generate_linter_command(**context):
     Reads the core script, resolves configuration, and builds the python command.
     """
     # 1. Resolve the GCS Bucket Name (Auto-detect or Manual)
-    target_bucket = _CONFIG_GCS_BUCKET_NAME if _CONFIG_GCS_BUCKET_NAME else os.environ.get("GCS_BUCKET")
+    target_bucket = (
+        _CONFIG_GCS_BUCKET_NAME
+        if _CONFIG_GCS_BUCKET_NAME
+        else os.environ.get("GCS_BUCKET")
+    )
 
     if not target_bucket:
         raise ValueError(
@@ -327,10 +338,10 @@ def generate_linter_command(**context):
     # 2. Read the content of the external script.
     # We use the location of the current file to find linter_core.py
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    core_script_path = os.path.join(current_dir, 'linter_core.py')
+    core_script_path = os.path.join(current_dir, "linter_core.py")
 
     try:
-        with open(core_script_path, 'r') as f:
+        with open(core_script_path, "r") as f:
             linter_script_content = f.read()
     except FileNotFoundError:
         raise FileNotFoundError(
@@ -356,13 +367,10 @@ def generate_linter_command(**context):
 
     # 5. Construct the full Python command string
     # Use string concatenation (+) to prevent f-string corruption of the script content.
-    final_command_string = (
-        linter_script_content +
-        f"\nmain('{config_json_arg}')"
-    )
+    final_command_string = linter_script_content + f"\nmain('{config_json_arg}')"
 
     # Push to XCom manually to avoid printing the huge command string in the logs
-    context['task_instance'].xcom_push(key='linter_command', value=final_command_string)
+    context["task_instance"].xcom_push(key="linter_command", value=final_command_string)
 
 
 # ==============================================================================
@@ -376,7 +384,6 @@ with DAG(
     tags=["profiler", "troubleshooting", "gcp-composer"],
     doc_md=__doc__,  # Use the module docstring as DAG documentation
 ) as dag:
-
     # Define the Volume and Volume Mount for guaranteed storage
     storage_volume = k8s.V1Volume(
         name="ephemeral-storage",
@@ -407,22 +414,21 @@ with DAG(
         task_id="profile_and_check_linter",
         name="dag-linter-pod",
         namespace=_CONFIG_POD_NAMESPACE,
-
         # Dynamically pull the image and command from previous tasks (using custom XCom key for command)
         image="{{ task_instance.xcom_pull(task_ids='detect_worker_image') }}",
-        arguments=["-c", "{{ task_instance.xcom_pull(task_ids='prepare_linter_script', key='linter_command') }}"],
+        arguments=[
+            "-c",
+            "{{ task_instance.xcom_pull(task_ids='prepare_linter_script', key='linter_command') }}",
+        ],
         cmds=["python"],
-
         container_resources=_CONFIG_POD_RESOURCES,
         do_xcom_push=False,
         get_logs=True,
         log_events_on_failure=True,
         startup_timeout_seconds=300,
-
         # Kubernetes connection parameters (Required for permissions in some environments)
         config_file="/home/airflow/composer_kube_config",
         kubernetes_conn_id="kubernetes_default",
-
         # Attach Ephemeral Storage Volume
         volumes=[storage_volume],
         volume_mounts=[storage_volume_mount],
