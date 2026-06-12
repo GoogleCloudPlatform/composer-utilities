@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from google.auth.transport.requests import Request as GoogleAuthRequest
-from google.cloud import storage
+from google.cloud import storage  # type: ignore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -78,8 +78,9 @@ origins = [
     "http://127.0.0.1:3000",
 ]
 # If we have an environment variable for origins, we can parse it
-if os.environ.get("ALLOWED_ORIGINS"):
-    origins.extend(os.environ.get("ALLOWED_ORIGINS").split(","))
+allowed_origins = os.environ.get("ALLOWED_ORIGINS")
+if allowed_origins:
+    origins.extend(allowed_origins.split(","))
 
 # Or to allow all (not recommended, but if necessary):
 # origins = ["*"]
@@ -325,7 +326,7 @@ def update_dag_content_sync(bucket_name, file_path, content):
     blob.upload_from_string(content)
 
 
-def sanitize_filename(filename: str, default_dag_id: str = None) -> str:
+def sanitize_filename(filename: str | None, default_dag_id: str | None = None) -> str:
     if filename:
         if filename.startswith("/home/airflow/gcs/"):
             filename = filename.replace("/home/airflow/gcs/", "", 1)
@@ -341,8 +342,8 @@ def sanitize_filename(filename: str, default_dag_id: str = None) -> str:
 
 
 @app.get("/api/dags/{dag_id}/content")
-async def get_dag_content(dag_id: str, request: Request, filename: str = None):
-    env_header: str = request.headers.get("X-Composer-Environment")
+async def get_dag_content(dag_id: str, request: Request, filename: str | None = None):
+    env_header: str | None = request.headers.get("X-Composer-Environment")
     if not env_header:
         raise HTTPException(
             status_code=400, detail="X-Composer-Environment header is required."
@@ -376,8 +377,8 @@ async def get_dag_content(dag_id: str, request: Request, filename: str = None):
 
 
 @app.post("/api/dags/{dag_id}/content")
-async def update_dag_content(dag_id: str, request: Request, filename: str = None):
-    env_header: str = request.headers.get("X-Composer-Environment")
+async def update_dag_content(dag_id: str, request: Request, filename: str | None = None):
+    env_header: str | None = request.headers.get("X-Composer-Environment")
     if not env_header:
         raise HTTPException(
             status_code=400, detail="X-Composer-Environment header is required."
@@ -421,7 +422,7 @@ async def update_dag_content(dag_id: str, request: Request, filename: str = None
 @app.api_route("/api/v1/{path:path}", methods=["GET", "POST", "PATCH", "DELETE"])
 async def proxy(path: str, request: Request):
     """Forwards requests to the Airflow API."""
-    env_header: str = request.headers.get("X-Composer-Environment")
+    env_header: str | None = request.headers.get("X-Composer-Environment")
     if not env_header:
         raise HTTPException(
             status_code=400, detail="X-Composer-Environment header is required."
@@ -442,6 +443,7 @@ async def proxy(path: str, request: Request):
 
     try:
         req_body = await request.body()
+        assert http_client is not None
         resp = await http_client.request(
             method=request.method,
             url=airflow_url,

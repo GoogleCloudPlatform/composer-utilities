@@ -16,3 +16,13 @@ dependencies = [
     "ruff",
     "pytest",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "pytest",
+    "ruff"
+]
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]

@@ -14,7 +14,7 @@
 
 import json
 
-from googleapiclient.discovery import build
+from googleapiclient.discovery import build  # type: ignore
 
 
 def test():
