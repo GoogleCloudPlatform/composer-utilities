@@ -4,7 +4,6 @@ name: Control Panel CI
 on:
   # Triggers the workflow on push or pull request events but only for changes to the control_panel directory
   push:
-    branches: ["main"]
     paths: ["control_panel/**"]
   pull_request:
     branches: ["main"]
