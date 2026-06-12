@@ -26,3 +26,7 @@ dev = [
 
 [tool.mypy]
 disable_error_code = ["import-untyped"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
