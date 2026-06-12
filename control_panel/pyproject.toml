@@ -15,7 +15,9 @@ dependencies = [
     "uvicorn>=0.30.0",
     "ruff",
     "pytest",
+    "pyopenssl",
 ]
+
 
 [project.optional-dependencies]
 dev = [

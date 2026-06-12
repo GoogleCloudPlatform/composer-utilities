@@ -18,6 +18,10 @@ import os
 import time
 from contextlib import asynccontextmanager
 
+# Disable mutual TLS (mTLS) to prevent urllib3/pyopenssl context mutation errors
+os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
+
+
 import google.auth
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response

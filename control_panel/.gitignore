@@ -29,6 +29,7 @@ __pycache__/
 *.pyd
 *.so
 *.dll
+uv.lock
 
 # Distribution / packaging
 build/
