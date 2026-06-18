@@ -1,0 +1,44 @@
+steps:
+# 1. Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  dir: 'control_panel'
+  args: [
+    'build',
+    '-t',
+    '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest',
+    '.'
+  ]
+
+# 2. Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'push',
+    '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest'
+  ]
+
+# 3. Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: [
+    'run',
+    'deploy',
+    '${_SERVICE_NAME}',
+    '--quiet',
+    '--image',
+    '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest',
+    '--region',
+    '${_REGION}',
+    '--service-account',
+    'composer@${PROJECT_ID}.iam.gserviceaccount.com',
+  ]
+
+images:
+- '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/${_SERVICE_NAME}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: 'us-central1'
+  _REPO_NAME: 'composer-control-panel-repo'
+  _SERVICE_NAME: 'composer-control-panel-service'
