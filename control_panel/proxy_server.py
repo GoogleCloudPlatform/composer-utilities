@@ -587,8 +587,9 @@ if os.path.exists("build/static"):
 @app.get("/{path:path}")
 async def serve_react_app(path: str):
     # Try serving a file from the build folder if it exists
-    filepath = os.path.join("build", path)
-    if path and os.path.exists(filepath):
+    base_path = os.path.abspath("build")
+    filepath = os.path.normpath(os.path.join(base_path, path))
+    if path and filepath.startswith(base_path) and os.path.exists(filepath):
         from fastapi.responses import FileResponse
 
         return FileResponse(filepath)
