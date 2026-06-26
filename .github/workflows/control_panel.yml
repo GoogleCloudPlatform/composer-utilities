@@ -1,4 +1,6 @@
 name: Control Panel CI
+permissisons:
+  contents: read
 
 # Controls when the workflow will run
 on:
