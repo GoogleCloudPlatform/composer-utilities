@@ -202,6 +202,7 @@ function DagEditView() {
       setSuccess('DAG content updated successfully.');
       setError(null);
       setHighlightedLine(null);
+      setContent(newContent);
     } catch (err) {
       if (err.response && err.response.status === 422) {
         const detail = err.response.data.detail;
