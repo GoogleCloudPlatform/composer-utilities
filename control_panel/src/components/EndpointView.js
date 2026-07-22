@@ -339,7 +339,7 @@ function EndpointView() {
   const unassociatedErrors = importErrors.filter(error => {
     return !dags.some(dag => {
       const envMatches = (!dag.environment || !error.environment || (dag.environment.name === error.environment.name && dag.environment.project === error.environment.project));
-      const fileMatches = error.filename === dag.fileloc || (dag.file_token && error.filename.endsWith(dag.file_token)) || dag.fileloc.includes(error.filename);
+      const fileMatches = (error.filename && dag.fileloc && error.filename === dag.fileloc) || (dag.file_token && error.filename && error.filename.endsWith(dag.file_token)) || (dag.fileloc && error.filename && dag.fileloc.includes(error.filename));
       return envMatches && fileMatches;
     });
   });
@@ -442,7 +442,7 @@ function EndpointView() {
       if (item.is_broken) return true; // Always show broken ones when filtering for errors
       return importErrors.some(error => {
         const envMatches = (!item.environment || !error.environment || item.environment.name === error.environment.name);
-        const fileMatches = error.filename === item.fileloc || (item.file_token && error.filename.endsWith(item.file_token)) || item.fileloc.includes(error.filename);
+        const fileMatches = (error.filename && item.fileloc && error.filename === item.fileloc) || (item.file_token && error.filename && error.filename.endsWith(item.file_token)) || (item.fileloc && error.filename && item.fileloc.includes(error.filename));
         return envMatches && fileMatches;
       });
     });
@@ -702,7 +702,7 @@ function EndpointView() {
                       const cloudStorageUrl = `https://console.cloud.google.com/storage/browser/_details/${dag.bucket}/dags/${dag.dag_id}.py`;
                       const associatedError = importErrors.find(error => {
                         const envMatches = (!dag.environment || !error.environment || (dag.environment.name === error.environment.name && dag.environment.project === error.environment.project));
-                        const fileMatches = error.filename === dag.fileloc || (dag.file_token && error.filename.endsWith(dag.file_token)) || dag.fileloc.includes(error.filename);
+                        const fileMatches = (error.filename && dag.fileloc && error.filename === dag.fileloc) || (dag.file_token && error.filename && error.filename.endsWith(dag.file_token)) || (dag.fileloc && error.filename && dag.fileloc.includes(error.filename));
                         return envMatches && fileMatches;
                       });
 
