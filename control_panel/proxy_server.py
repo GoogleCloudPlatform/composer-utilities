@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
         logging.error(f"Error building global Google API clients: {e}")
 
     # Initialize shared async HTTP client
-    http_client = httpx.AsyncClient(timeout=90.0)
+    http_client = httpx.AsyncClient(timeout=300.0)
 
     yield  # Let the app run
 
@@ -554,7 +554,7 @@ async def proxy(api_version: str, path: str, request: Request):
             method=request.method,
             url=airflow_url,
             headers=headers,
-            params=request.query_params,
+            params=tuple(request.query_params.multi_items()),
             content=req_body,
         )
 
@@ -573,8 +573,8 @@ async def proxy(api_version: str, path: str, request: Request):
         )
 
     except httpx.RequestError as e:
-        logging.error(f"Request Forwarding Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Proxy server error: {str(e)}")
+        logging.error(f"Request Forwarding Error: {repr(e)}")
+        raise HTTPException(status_code=500, detail=f"Proxy server error: {repr(e)}")
 
 
 # Serve React App

@@ -71,6 +71,7 @@ function EndpointView() {
   const [importErrors, setImportErrors] = useState([]);
   const [filter, setFilter] = useState('');
   const [showErrorDagsOnly, setShowErrorDagsOnly] = useState(false);
+  const [showRunningDagsOnly, setShowRunningDagsOnly] = useState(false);
   const [columnFilters, setColumnFilters] = useState({});
   const [showModal, setShowModal] = useState(false);
   const handleCloseModal = () => setShowModal(false);
@@ -78,6 +79,8 @@ function EndpointView() {
   const [paramValues, setParamValues] = useState({});
   const [showTriggerModal, setShowTriggerModal] = useState(false);
   const [triggeredEnvironment, setTriggeredEnvironment] = useState(null);
+  const [showClearMappedModal, setShowClearMappedModal] = useState(false);
+  const [clearingMappedDag, setClearingMappedDag] = useState(null);
 
   const columnsList = [
     { key: 'project', label: 'Project' },
@@ -335,11 +338,476 @@ function EndpointView() {
     }
   };
 
+  const failTasksForDag = async (dag) => {
+    let tasksModified = 0;
+    const apiVersion = dag.environment.imageVersion && dag.environment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+    const encodedDagId = encodeURIComponent(dag.dag_id);
+    const activeStates = ['running', 'queued', 'scheduled', 'up_for_retry', 'up_for_reschedule', 'deferred'];
+    const stateQuery = activeStates.map(s => `state=${s}`).join('&');
+    const tiResponse = await apiClient.get(`/api/${apiVersion}/dags/${encodedDagId}/dagRuns/~/taskInstances?${stateQuery}`, {
+      headers: { 'X-Composer-Environment': dag.environment.url }
+    });
+    
+    const activeTasks = tiResponse.data.task_instances || [];
+    const patchPromises = [];
+    const patchedAirflow3TaskIds = new Set();
+    
+    for (const task of activeTasks) {
+      const encodedDagRunId = encodeURIComponent(task.dag_run_id);
+      const encodedTaskId = encodeURIComponent(task.task_id);
+      const isMapped = task.map_index !== undefined && task.map_index >= 0;
+      
+      let patchUrl = `/api/${apiVersion}/dags/${encodedDagId}/dagRuns/${encodedDagRunId}/taskInstances/${encodedTaskId}`;
+      
+      if (apiVersion === 'v2') {
+        // Airflow 3: PATCHing the base task (without map_index) automatically patches ALL map indexes.
+        // Sending concurrent PATCH requests (even with map_index) to the same task_id causes concurrency/lock errors.
+        // Therefore, we de-duplicate by task_id and send exactly one request.
+        const uniqueKey = `${task.dag_run_id}_${task.task_id}`;
+        if (patchedAirflow3TaskIds.has(uniqueKey)) {
+          tasksModified++; // Still count it for the UI since it will be modified by the single request
+          continue;
+        }
+        patchedAirflow3TaskIds.add(uniqueKey);
+        // Do NOT append ?map_index= for Airflow 3
+      } else {
+        // Airflow 2: Mapped tasks do not have a base task instance, must patch each map index individually.
+        // Concurrency is handled correctly by Airflow 2 API.
+        if (isMapped) {
+          patchUrl += `/${task.map_index}`;
+        }
+      }
+      
+      const payload = { new_state: 'failed' };
+      if (apiVersion === 'v1') {
+        payload.dry_run = false;
+      }
+      
+      patchPromises.push(
+        apiClient.patch(patchUrl, payload, { headers: { 'X-Composer-Environment': dag.environment.url } })
+      );
+      tasksModified++;
+    }
+    await Promise.all(patchPromises);
+    return tasksModified;
+  };
+
+  const handleFailRunningTasks = async () => {
+    setIsBulkUpdating(true);
+    try {
+      let totalTasksModified = 0;
+      const promises = selectedDags.map(async (selectedDag) => {
+        const dag = dags.find(d => d.dag_id === selectedDag.dag_id && d.environment.name === selectedDag.env);
+        if (dag) {
+          const modified = await failTasksForDag(dag);
+          totalTasksModified += modified;
+        }
+      });
+      await Promise.all(promises);
+      setSelectedDags([]);
+      fetchDags();
+      setResponse({
+        data: { message: `Successfully executed request. Found and marked ${totalTasksModified} running tasks as failed for selected DAGs.` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleFailDagRunningTasks = async (dag) => {
+    setIsBulkUpdating(true);
+    try {
+      const totalTasksModified = await failTasksForDag(dag);
+      fetchDags();
+      setResponse({
+        data: { message: `Successfully executed request. Found and marked ${totalTasksModified} running tasks as failed for DAG ${dag.dag_id}.` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleFailRunningDags = async () => {
+    setIsBulkUpdating(true);
+    try {
+      let totalDagRunsModified = 0;
+      
+      const uniqueEnvironments = [];
+      const envUrls = new Set();
+      dags.forEach(dag => {
+        if (dag.environment && !envUrls.has(dag.environment.url)) {
+          envUrls.add(dag.environment.url);
+          uniqueEnvironments.push(dag.environment);
+        }
+      });
+      
+      const patchPromises = [];
+      
+      for (const env of uniqueEnvironments) {
+        const apiVersion = env.imageVersion && env.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+        const activeStates = ['running', 'queued'];
+        const stateQuery = activeStates.map(s => `state=${s}`).join('&');
+        
+        const drResponse = await apiClient.get(`/api/${apiVersion}/dags/~/dagRuns?${stateQuery}`, {
+          headers: { 'X-Composer-Environment': env.url }
+        });
+        
+        const activeDagRuns = drResponse.data.dag_runs || [];
+        
+        for (const run of activeDagRuns) {
+          totalDagRunsModified++;
+          const encodedDagId = encodeURIComponent(run.dag_id);
+          const encodedDagRunId = encodeURIComponent(run.dag_run_id);
+          const patchUrl = `/api/${apiVersion}/dags/${encodedDagId}/dagRuns/${encodedDagRunId}`;
+          const payload = { state: 'failed' };
+          
+          patchPromises.push(
+            apiClient.patch(patchUrl, payload, { headers: { 'X-Composer-Environment': env.url } })
+          );
+        }
+      }
+      
+      await Promise.all(patchPromises);
+      fetchDags();
+      
+      setResponse({
+        data: { message: `Successfully executed request. Found and marked ${totalDagRunsModified} running DAGs as failed.` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const clearTasksForDag = async (dag) => {
+    const apiVersion = dag.environment.imageVersion && dag.environment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+    const encodedDagId = encodeURIComponent(dag.dag_id);
+
+    // Fetch latest DAG run
+    const orderParam = apiVersion === 'v2' ? 'order_by=-logical_date' : 'order_by=-execution_date';
+    const dagRunsUrl = `/api/${apiVersion}/dags/${encodedDagId}/dagRuns?${orderParam}&limit=1`;
+    let latestRunDate = null;
+    let latestRunId = null;
+    try {
+      const runResponse = await apiClient.get(dagRunsUrl, { headers: { 'X-Composer-Environment': dag.environment.url } });
+      if (runResponse.data && runResponse.data.dag_runs && runResponse.data.dag_runs.length > 0) {
+        const latestRun = runResponse.data.dag_runs[0];
+        latestRunDate = latestRun.logical_date || latestRun.execution_date;
+        latestRunId = latestRun.dag_run_id;
+      }
+    } catch (e) {
+      console.error(`Failed to fetch latest run for DAG ${dag.dag_id}`, e);
+    }
+    
+    const requestUrl = `/api/${apiVersion}/dags/${encodedDagId}/clearTaskInstances`;
+    
+    const payload = { 
+      dry_run: false,
+      reset_dag_runs: true,
+      only_failed: false,
+      only_running: false
+    }; 
+    
+    if (apiVersion === 'v2' && latestRunId) {
+      payload.dag_run_id = latestRunId;
+    } else if (latestRunDate) {
+      payload.start_date = latestRunDate;
+      payload.end_date = latestRunDate;
+    }
+    
+    if (apiVersion === 'v2') {
+      try {
+        const tasksResponse = await apiClient.get(`/api/${apiVersion}/dags/${encodedDagId}/tasks`, { headers: { 'X-Composer-Environment': dag.environment.url } });
+        if (tasksResponse.data && tasksResponse.data.tasks && tasksResponse.data.tasks.length > 0) {
+          payload.task_ids = tasksResponse.data.tasks.map(t => t.task_id);
+        } else {
+          return 0;
+        }
+      } catch (e) {
+        console.error(`Failed to fetch tasks for DAG ${dag.dag_id}`, e);
+      }
+    }
+    
+    try {
+      const response = await apiClient.post(requestUrl, payload, { 
+        headers: { 'X-Composer-Environment': dag.environment.url },
+        timeout: 10000 
+      });
+      
+      if (response.data && response.data.task_instances) {
+          return response.data.task_instances.length;
+      } else if (response.data && response.data.total_entries) {
+          return response.data.total_entries;
+      }
+      return 1;
+    } catch (e) {
+      if (e.code === 'ECONNABORTED' || (e.response && e.response.status === 500 && e.response.data && e.response.data.detail && String(e.response.data.detail).includes("ReadTimeout"))) {
+        console.warn("Clear task request timed out. Assuming it is processing in the background.", e);
+        return 0;
+      }
+      throw e;
+    }
+  };
+
+  const handleClearExistingTasks = async () => {
+    setIsBulkUpdating(true);
+    try {
+      let totalTasksCleared = 0;
+      
+      const promises = dags.map(async (dag) => {
+          try {
+             totalTasksCleared += await clearTasksForDag(dag);
+          } catch (e) {
+             console.error(`Failed to clear tasks for DAG ${dag.dag_id}`, e);
+          }
+      });
+      await Promise.all(promises);
+      
+      fetchDags();
+      
+      setResponse({
+        data: { message: `Successfully executed request. Found and cleared tasks for all DAGs. (Approx ${totalTasksCleared} task instances affected)` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleClearExistingTasksSelected = async () => {
+    setIsBulkUpdating(true);
+    try {
+      let totalTasksCleared = 0;
+      const promises = selectedDags.map(async (selectedDag) => {
+        const dag = dags.find(d => d.dag_id === selectedDag.dag_id && d.environment.name === selectedDag.env);
+        if (dag) {
+           totalTasksCleared += await clearTasksForDag(dag);
+        }
+      });
+      await Promise.all(promises);
+      setSelectedDags([]);
+      fetchDags();
+      setResponse({
+        data: { message: `Successfully executed request. Found and cleared ${totalTasksCleared} tasks for selected DAGs.` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleClearDagTasks = async (dag) => {
+    setIsBulkUpdating(true);
+    try {
+      const totalTasksCleared = await clearTasksForDag(dag);
+      fetchDags();
+      setResponse({
+        data: { message: `Successfully executed request. Found and cleared ${totalTasksCleared} tasks for DAG ${dag.dag_id}.` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleClearMappedSubmit = async (dag, taskId, mapIndex, clearDownstream) => {
+    setIsBulkUpdating(true);
+    try {
+      const apiVersion = dag.environment.imageVersion && dag.environment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+      const encodedDagId = encodeURIComponent(dag.dag_id);
+
+      // 1. Fetch latest DAG run to get dag_run_id
+      const orderParam = apiVersion === 'v2' ? 'order_by=-logical_date' : 'order_by=-execution_date';
+      const dagRunsUrl = `/api/${apiVersion}/dags/${encodedDagId}/dagRuns?${orderParam}&limit=1`;
+      const runResponse = await apiClient.get(dagRunsUrl, { headers: { 'X-Composer-Environment': dag.environment.url } });
+      if (!runResponse.data || !runResponse.data.dag_runs || runResponse.data.dag_runs.length === 0) {
+        throw new Error("No DAG runs found to clear.");
+      }
+      const latestRun = runResponse.data.dag_runs[0];
+      const encodedDagRunId = encodeURIComponent(latestRun.dag_run_id);
+
+      // 2. Determine tasks to process (target task + downstreams if clearDownstream)
+      const tasksToProcess = new Set([taskId]);
+      
+      if (clearDownstream) {
+        const tasksResponse = await apiClient.get(`/api/${apiVersion}/dags/${encodedDagId}/tasks`, {
+          headers: { 'X-Composer-Environment': dag.environment.url }
+        });
+        const tasks = tasksResponse.data.tasks || [];
+        const taskMap = {};
+        tasks.forEach(t => taskMap[t.task_id] = t);
+        
+        const queue = [taskId];
+        while (queue.length > 0) {
+          const currentId = queue.shift();
+          const currentTask = taskMap[currentId];
+          if (currentTask && currentTask.downstream_task_ids) {
+            currentTask.downstream_task_ids.forEach(downstreamId => {
+              if (!tasksToProcess.has(downstreamId)) {
+                tasksToProcess.add(downstreamId);
+                queue.push(downstreamId);
+              }
+            });
+          }
+        }
+      }
+
+      // 3. For each task, find its instances in the DAG run and mark the relevant ones as 'failed'
+      const tiResponse = await apiClient.get(`/api/${apiVersion}/dags/${encodedDagId}/dagRuns/${encodedDagRunId}/taskInstances?limit=1000`, {
+        headers: { 'X-Composer-Environment': dag.environment.url }
+      });
+      const taskInstances = tiResponse.data.task_instances || [];
+      
+      const tasksActuallyFailed = new Set();
+      const patchTasks = [];
+
+      for (const tId of tasksToProcess) {
+        const instances = taskInstances.filter(ti => ti.task_id === tId);
+        if (instances.length === 0) continue;
+        
+        const isMapped = instances.some(ti => ti.map_index !== undefined && ti.map_index >= 0);
+        
+        let targetInstances = [];
+        if (isMapped) {
+          targetInstances = instances.filter(ti => ti.map_index === mapIndex);
+        } else {
+          targetInstances = instances;
+        }
+
+        for (const ti of targetInstances) {
+          const encodedTaskId = encodeURIComponent(ti.task_id);
+          let patchUrl = `/api/${apiVersion}/dags/${encodedDagId}/dagRuns/${encodedDagRunId}/taskInstances/${encodedTaskId}`;
+          
+          if (apiVersion !== 'v2' && ti.map_index !== undefined && ti.map_index >= 0) {
+            patchUrl += `/${ti.map_index}`;
+          }
+          
+          patchTasks.push({ url: patchUrl, tId: tId });
+        }
+      }
+
+      for (const pt of patchTasks) {
+        try {
+          await apiClient.patch(pt.url, { new_state: 'failed' }, { 
+            headers: { 'X-Composer-Environment': dag.environment.url },
+            timeout: 10000
+          });
+        } catch (e) {
+          if (e.code === 'ECONNABORTED' || (e.response && e.response.status === 500 && e.response.data && e.response.data.detail && String(e.response.data.detail).includes("ReadTimeout"))) {
+            console.warn("Patch request timed out. Assuming it is processing in the background.", e);
+          } else {
+            throw e;
+          }
+        }
+        tasksActuallyFailed.add(pt.tId);
+      }
+
+      // 4. Clear ONLY the failed instances of the tasks we processed
+      if (tasksActuallyFailed.size > 0) {
+        const latestRunDate = latestRun.logical_date || latestRun.execution_date;
+        const clearUrl = `/api/${apiVersion}/dags/${encodedDagId}/clearTaskInstances`;
+        const clearPayload = {
+          dry_run: false,
+          task_ids: Array.from(tasksActuallyFailed),
+          only_failed: true,
+          include_downstream: false,
+          start_date: latestRunDate,
+          end_date: latestRunDate
+        };
+        try {
+          await apiClient.post(clearUrl, clearPayload, { 
+            headers: { 'X-Composer-Environment': dag.environment.url },
+            timeout: 10000
+          });
+        } catch (e) {
+          if (e.code === 'ECONNABORTED' || (e.response && e.response.status === 500 && e.response.data && e.response.data.detail && String(e.response.data.detail).includes("ReadTimeout"))) {
+            console.warn("Clear task request timed out. Assuming it is processing in the background.", e);
+          } else {
+            throw e;
+          }
+        }
+      }
+      
+      fetchDags();
+      setResponse({
+        data: { message: `Successfully executed clear mapped task request for DAG ${dag.dag_id}, Task ${taskId} (Map Index: ${mapIndex}). (Note: Some operations may take time to process in the background)` },
+        status: 200,
+        statusText: "OK"
+      });
+      setShowModal(true);
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Error: ${errorDetails}`);
+      setShowModal(true);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   // Compute displayed items on every render
   const unassociatedErrors = importErrors.filter(error => {
     return !dags.some(dag => {
       const envMatches = (!dag.environment || !error.environment || (dag.environment.name === error.environment.name && dag.environment.project === error.environment.project));
-      const fileMatches = error.filename === dag.fileloc || (dag.file_token && error.filename.endsWith(dag.file_token)) || dag.fileloc.includes(error.filename);
+      const fileMatches = (error.filename && dag.fileloc && error.filename === dag.fileloc) || (dag.file_token && error.filename && error.filename.endsWith(dag.file_token)) || (dag.fileloc && error.filename && dag.fileloc.includes(error.filename));
       return envMatches && fileMatches;
     });
   });
@@ -442,10 +910,14 @@ function EndpointView() {
       if (item.is_broken) return true; // Always show broken ones when filtering for errors
       return importErrors.some(error => {
         const envMatches = (!item.environment || !error.environment || item.environment.name === error.environment.name);
-        const fileMatches = error.filename === item.fileloc || (item.file_token && error.filename.endsWith(item.file_token)) || item.fileloc.includes(error.filename);
+        const fileMatches = (error.filename && item.fileloc && error.filename === item.fileloc) || (item.file_token && error.filename && error.filename.endsWith(item.file_token)) || (item.fileloc && error.filename && item.fileloc.includes(error.filename));
         return envMatches && fileMatches;
       });
     });
+  }
+
+  if (showRunningDagsOnly) {
+    displayedItems = displayedItems.filter(item => item.last_runs && item.last_runs.some(run => run.state === 'running'));
   }
 
   if (filter) {
@@ -580,11 +1052,15 @@ function EndpointView() {
           <Button variant="primary" onClick={fetchDags} className="mb-3">Refresh DAGs</Button>
           <div className="mb-3">
             <Button variant="warning" onClick={() => handleToggleAllDags(true)} className="me-2" disabled={isBulkUpdating}>Pause All DAGs</Button>
-            <Button variant="success" onClick={() => handleToggleAllDags(false)} disabled={isBulkUpdating}>Unpause All DAGs</Button>
+            <Button variant="success" onClick={() => handleToggleAllDags(false)} className="me-2" disabled={isBulkUpdating}>Unpause All DAGs</Button>
+            <Button variant="danger" onClick={handleFailRunningDags} className="me-2" disabled={isBulkUpdating}>Fail Running DAGs</Button>
+            <Button variant="secondary" onClick={handleClearExistingTasks} disabled={isBulkUpdating}>Clear Existing Tasks</Button>
           </div>
           <div className="mb-3 d-flex align-items-center">
             <Button variant="warning" onClick={handlePauseSelectedDags} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Pause Selected</Button>
-            <Button variant="success" onClick={handleUnpauseSelectedDags} disabled={selectedDags.length === 0 || isBulkUpdating}>Unpause Selected</Button>
+            <Button variant="success" onClick={handleUnpauseSelectedDags} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Unpause Selected</Button>
+            <Button variant="danger" onClick={handleFailRunningTasks} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Fail Running Tasks</Button>
+            <Button variant="secondary" onClick={handleClearExistingTasksSelected} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Clear Existing Tasks Selected</Button>
             {isBulkUpdating && <Spinner animation="border" size="sm" className="ms-2" />}
           </div>
           {isLoading ? (
@@ -610,6 +1086,14 @@ function EndpointView() {
                   className="text-nowrap"
                 >
                   {showErrorDagsOnly ? "Show All DAGs" : "Show Errors Only"}
+                </Button>
+                <Button
+                  variant={showRunningDagsOnly ? "primary" : "outline-primary"}
+                  onClick={() => setShowRunningDagsOnly(!showRunningDagsOnly)}
+                  title={showRunningDagsOnly ? "Show All DAGs" : "Filter to running DAGs"}
+                  className="text-nowrap"
+                >
+                  {showRunningDagsOnly ? "Show All DAGs" : "Show Running DAGs Only"}
                 </Button>
                 <Dropdown className="d-inline-block">
                   <Dropdown.Toggle variant="outline-primary" id="dropdown-columns" className="text-nowrap">
@@ -702,7 +1186,7 @@ function EndpointView() {
                       const cloudStorageUrl = `https://console.cloud.google.com/storage/browser/_details/${dag.bucket}/dags/${dag.dag_id}.py`;
                       const associatedError = importErrors.find(error => {
                         const envMatches = (!dag.environment || !error.environment || (dag.environment.name === error.environment.name && dag.environment.project === error.environment.project));
-                        const fileMatches = error.filename === dag.fileloc || (dag.file_token && error.filename.endsWith(dag.file_token)) || dag.fileloc.includes(error.filename);
+                        const fileMatches = (error.filename && dag.fileloc && error.filename === dag.fileloc) || (dag.file_token && error.filename && error.filename.endsWith(dag.file_token)) || (dag.fileloc && error.filename && dag.fileloc.includes(error.filename));
                         return envMatches && fileMatches;
                       });
 
@@ -764,6 +1248,36 @@ function EndpointView() {
                                   >
                                     Reparse
                                   </Button>
+                                    <Button
+                                      variant="danger"
+                                      size="sm"
+                                      onClick={() => handleFailDagRunningTasks(dag)}
+                                      title="Fail Running Tasks"
+                                      disabled={isBulkUpdating}
+                                    >
+                                      Fail Tasks
+                                    </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      onClick={() => handleClearDagTasks(dag)}
+                                      title="Clear Tasks"
+                                      disabled={isBulkUpdating}
+                                    >
+                                      Clear Tasks
+                                    </Button>
+                                    <Button
+                                      variant="outline-secondary"
+                                      size="sm"
+                                      onClick={() => {
+                                        setClearingMappedDag(dag);
+                                        setShowClearMappedModal(true);
+                                      }}
+                                      title="Clear Mapped Task"
+                                      disabled={isBulkUpdating}
+                                    >
+                                      Clear Mapped Task
+                                    </Button>
                                 </>
                               )}
                               <Link to={`/edit-dag/${dag.dag_id}/${dag.environment.project}/${dag.environment.name}?filename=${encodeURIComponent(dag.fileloc)}${associatedError ? `&line=${extractLineNumber(associatedError.stack_trace, dag.fileloc)}` : ''}`} className="btn btn-info btn-sm">Edit</Link>
@@ -794,7 +1308,10 @@ function EndpointView() {
                                   else if (run.state === 'queued') color = '#ffc107'; // bootstrap warning yellow
 
                                   const envUrl = dag.environment.url.replace(/\/$/, "");
-                                  const runUrl = `${envUrl}/dags/${dag.dag_id}/grid?dag_run_id=${encodeURIComponent(run.dag_run_id)}`;
+                                  const isAirflow3 = dag.environment.imageVersion && dag.environment.imageVersion.includes('-airflow-3');
+                                  const runUrl = isAirflow3 
+                                    ? `${envUrl}/dags/${dag.dag_id}/runs/${encodeURIComponent(run.dag_run_id)}`
+                                    : `${envUrl}/dags/${dag.dag_id}/grid?dag_run_id=${encodeURIComponent(run.dag_run_id)}`;
 
                                   return (
                                     <a
@@ -855,6 +1372,12 @@ function EndpointView() {
           paramValues={paramValues}
           setParamValues={setParamValues}
           onTrigger={triggerDag}
+        />
+        <ClearMappedTaskModal
+          show={showClearMappedModal}
+          onHide={() => { setShowClearMappedModal(false); setClearingMappedDag(null); }}
+          dag={clearingMappedDag}
+          onClear={handleClearMappedSubmit}
         />
       </Card>
     );
@@ -938,10 +1461,15 @@ function EndpointView() {
 const ResponseModal = ({ show, onHide, response, error, endpoint, environment }) => {
   const dagRunId = response?.data?.dag_run_id;
   const dagId = response?.data?.dag_id;
-  const envUrl = environment?.url;
+  const envUrl = environment?.url?.replace(/\/$/, "");
+  const isAirflow3 = environment?.imageVersion?.includes('-airflow-3');
 
   const showLink = dagRunId && dagId && envUrl && envUrl !== 'all';
-  const dagRunUrl = showLink ? `${envUrl}/dags/${dagId}/grid?dag_run_id=${encodeURIComponent(dagRunId)}` : null;
+  const dagRunUrl = showLink 
+    ? (isAirflow3 
+        ? `${envUrl}/dags/${dagId}/runs/${encodeURIComponent(dagRunId)}`
+        : `${envUrl}/dags/${dagId}/grid?dag_run_id=${encodeURIComponent(dagRunId)}`)
+    : null;
 
   return (
     <Modal show={show} onHide={onHide} size="lg">
@@ -1038,6 +1566,7 @@ const TriggerModal = ({ show, onHide, triggeringDag, paramValues, setParamValues
             const description = (param && typeof param === 'object') ? param.description : null;
             const schemaType = (param && typeof param === 'object' && param.schema) ? param.schema.type : null;
             const isBoolean = schemaType === 'boolean' || typeof val === 'boolean';
+            const isNumber = schemaType === 'integer' || schemaType === 'number' || (Array.isArray(schemaType) && (schemaType.includes('integer') || schemaType.includes('number'))) || typeof val === 'number';
 
             return (
               <Form.Group className="mb-3" key={key}>
@@ -1053,10 +1582,16 @@ const TriggerModal = ({ show, onHide, triggeringDag, paramValues, setParamValues
                   <>
                     <Form.Label>{key}</Form.Label>
                     <Form.Control
-                      type="text"
+                      type={isNumber ? "number" : "text"}
                       name={key}
-                      value={paramValues[key] || ''}
-                      onChange={handleParamValChange}
+                      value={paramValues[key] === undefined || paramValues[key] === null ? '' : paramValues[key]}
+                      onChange={(e) => {
+                        let newValue = e.target.value;
+                        if (isNumber && newValue !== '') {
+                          newValue = Number(newValue);
+                        }
+                        setParamValues(prev => ({ ...prev, [key]: newValue }));
+                      }}
                     />
                   </>
                 )}
@@ -1069,6 +1604,101 @@ const TriggerModal = ({ show, onHide, triggeringDag, paramValues, setParamValues
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>Cancel</Button>
         <Button variant="primary" onClick={handleModalTrigger}>Trigger</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+const ClearMappedTaskModal = ({ show, onHide, dag, onClear }) => {
+  const [mapIndex, setMapIndex] = useState('');
+  const [taskId, setTaskId] = useState('');
+  const [tasks, setTasks] = useState([]);
+  const [clearDownstream, setClearDownstream] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (show && dag) {
+      setMapIndex('');
+      setTaskId('');
+      setClearDownstream(false);
+      setTasks([]);
+      setIsLoading(true);
+
+      // Use dynamic import or standard apiClient if it's already in scope (it is)
+      const apiVersion = dag.environment.imageVersion && dag.environment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+      const encodedDagId = encodeURIComponent(dag.dag_id);
+      
+      apiClient.get(`/api/${apiVersion}/dags/${encodedDagId}/tasks`, {
+        headers: { 'X-Composer-Environment': dag.environment.url }
+      }).then(response => {
+        if (response.data && response.data.tasks) {
+          setTasks(response.data.tasks);
+          if (response.data.tasks.length > 0) {
+            setTaskId(response.data.tasks[0].task_id);
+          }
+        }
+      }).catch(err => {
+        console.error("Failed to fetch tasks", err);
+      }).finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [show, dag]);
+
+  const handleClear = () => {
+    onHide();
+    onClear(dag, taskId, parseInt(mapIndex, 10), clearDownstream);
+  };
+
+  return (
+    <Modal show={show} onHide={onHide}>
+      <Modal.Header closeButton>
+        <Modal.Title>Clear Mapped Task: {dag?.dag_id}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {isLoading ? (
+          <div className="d-flex justify-content-center">
+            <Spinner animation="border" size="sm" /> <span className="ms-2">Loading tasks...</span>
+          </div>
+        ) : (
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Task ID</Form.Label>
+              <Form.Select 
+                value={taskId} 
+                onChange={(e) => setTaskId(e.target.value)}
+                disabled={tasks.length === 0}
+              >
+                <option value="">Select a task...</option>
+                {tasks.map(t => (
+                  <option key={t.task_id} value={t.task_id}>{t.task_id}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mapped Index</Form.Label>
+              <Form.Control
+                type="number"
+                value={mapIndex}
+                onChange={(e) => setMapIndex(e.target.value)}
+                placeholder="Enter mapped index (e.g. 0)"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                id="clear-downstream-check"
+                label="Clear downstream dependent tasks with the same mapped index"
+                checked={clearDownstream}
+                onChange={(e) => setClearDownstream(e.target.checked)}
+              />
+            </Form.Group>
+          </Form>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onHide}>Cancel</Button>
+        <Button variant="primary" onClick={handleClear} disabled={mapIndex === '' || taskId === ''}>Clear</Button>
       </Modal.Footer>
     </Modal>
   );

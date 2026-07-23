@@ -28,6 +28,8 @@ echo "Starting Proxy Python server..."
 uv run proxy_server.py &
 PROXY_PID=$!
 
+echo "Installing NPM dependencies..."
+npm install --registry=https://registry.npmjs.org/
 echo "Starting NPM server..."
 npm start &
 NPM_PID=$!
