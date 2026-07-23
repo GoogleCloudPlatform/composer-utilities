@@ -554,7 +554,7 @@ async def proxy(api_version: str, path: str, request: Request):
             method=request.method,
             url=airflow_url,
             headers=headers,
-            params=request.query_params.multi_items(),
+            params=tuple(request.query_params.multi_items()),
             content=req_body,
         )
 
