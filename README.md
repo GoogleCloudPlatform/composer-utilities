@@ -17,4 +17,8 @@ Profiles DAG parsing for a Managed Airflow environment. This tool helps you opti
 ## [Managed Airflow Control Panel](./control_panel)
 An administration dashboard to manage DAGs (pause, unpause, trigger, and bulk operations), view import errors, and edit DAG code in-browser across multiple Composer environments, projects, and regions from a single workspace.
 
+## [Managed Airflow Cluster Policy Manager](./composer_cluster_policy)
+Provides production-grade Airflow Cluster Policies for Cloud Composer to enforce resource governance, clamp excessive KubernetesPodOperator requests, and enforce task and DAG metadata standards.
+
+
 
