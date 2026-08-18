@@ -1,4 +1,4 @@
-# 🛡️ Cloud Composer Cluster Policy Manager
+# Cloud Composer Cluster Policy Manager
 
 ## Overview
 This utility provides production-grade **Airflow Cluster Policies** for Google Cloud Composer (Composer 2 and Composer 3) to enforce resource governance, cluster stability, and operational standards.
@@ -9,7 +9,7 @@ Using Airflow Cluster Policies (`airflow_local_settings.py`), this tool intercep
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 1. **Pod Resource Governance (`pod_mutation_hook`):**
    * **Automatic Clamping:** Intercepts pod definitions and clamps excessive CPU requests/limits (e.g., capping `8000m` -> `4000m`) and Memory (e.g., `16000Mi` -> `8192Mi`).
@@ -26,7 +26,7 @@ Using Airflow Cluster Policies (`airflow_local_settings.py`), this tool intercep
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 composer_cluster_policy/
@@ -41,7 +41,7 @@ composer_cluster_policy/
 
 ---
 
-## ⚙️ Quick Setup
+## Quick Setup
 
 ### 1. Deploy the Cluster Policy to Cloud Composer
 Copy `airflow_local_settings.py` into your Cloud Composer environment's `plugins/` directory:
@@ -79,7 +79,7 @@ gcloud storage cp composer_cluster_policy/dags/sample_kpo_resource_enforcement_d
 
 ---
 
-## 🔧 Configuration Options
+## Configuration Options
 
 The policy behavior can be customized via Airflow Environment Variables or directly in `airflow_local_settings.py`:
 
@@ -104,7 +104,7 @@ gcloud composer environments update $COMPOSER_ENVIRONMENT \
 
 ---
 
-## 🧪 Running Unit Tests
+## Running Unit Tests
 
 Run the test suite locally:
 

@@ -45,7 +45,7 @@ logger = logging.getLogger("airflow.cluster_policy")
 
 
 # ==============================================================================
-# ⚙️ CONFIGURATION & POLICY THRESHOLDS
+# CONFIGURATION & POLICY THRESHOLDS
 # ==============================================================================
 
 # Maximum allowed CPU request/limit per pod container (in cores, e.g. 4.0 = 4000m)
@@ -82,7 +82,7 @@ MAX_ALLOWED_RETRIES: int = int(os.environ.get("COMPOSER_POLICY_MAX_RETRIES", "3"
 
 
 # ==============================================================================
-# 🛠️ RESOURCE PARSING HELPERS
+# RESOURCE PARSING HELPERS
 # ==============================================================================
 
 def parse_cpu_to_cores(cpu_val: str | int | float | None) -> float | None:
@@ -155,7 +155,7 @@ def parse_memory_to_mib(mem_val: str | int | float | None) -> float | None:
 
 
 # ==============================================================================
-# 🛡️ POD MUTATION HOOK (Airflow Cluster Policy)
+# POD MUTATION HOOK (Airflow Cluster Policy)
 # ==============================================================================
 
 def pod_mutation_hook(pod: Any) -> None:
@@ -322,7 +322,7 @@ def _enforce_container_resources(container: Any) -> None:
 
 
 # ==============================================================================
-# 📋 TASK POLICY (Airflow Cluster Policy)
+# TASK POLICY (Airflow Cluster Policy)
 # ==============================================================================
 
 def task_policy(task: Any) -> None:
@@ -354,7 +354,7 @@ def task_policy(task: Any) -> None:
 
 
 # ==============================================================================
-# 📦 DAG POLICY (Airflow Cluster Policy)
+# DAG POLICY (Airflow Cluster Policy)
 # ==============================================================================
 
 def dag_policy(dag: Any) -> None:
