@@ -96,6 +96,56 @@ class TestPodMutationHook(unittest.TestCase):
         self.assertEqual(requests["cpu"], "500m")
         self.assertEqual(requests["memory"], "1024Mi")
 
+    def test_injects_default_limits_when_only_requests_specified(self):
+        """Verify fallback limits are injected when only requests are provided."""
+        container_only_req = MockObject(
+            name="worker",
+            resources={"requests": {"cpu": "250m", "memory": "512Mi"}},
+        )
+        pod = MockObject(
+            metadata=MockObject(namespace="composer-user-workloads", labels={}),
+            spec=MockObject(containers=[container_only_req]),
+        )
+
+        policy.pod_mutation_hook(pod)
+
+        limits = container_only_req.resources["limits"]
+        self.assertEqual(limits["cpu"], "2000m")
+        self.assertEqual(limits["memory"], "4096Mi")
+        self.assertEqual(container_only_req.resources["requests"]["cpu"], "250m")
+        self.assertEqual(container_only_req.resources["requests"]["memory"], "512Mi")
+
+    def test_handles_k8s_model_objects_without_type_error(self):
+        """Verify object-based resource definitions are clamped and updated safely without TypeError."""
+        class ResourceSpec:
+            def __init__(self, cpu, memory):
+                self.cpu = cpu
+                self.memory = memory
+
+        class K8sResources:
+            def __init__(self, requests, limits):
+                self.requests = requests
+                self.limits = limits
+
+        container_obj = MockObject(
+            name="k8s_worker",
+            resources=K8sResources(
+                requests=ResourceSpec(cpu="8000m", memory="16000Mi"),
+                limits=ResourceSpec(cpu="9000m", memory="18000Mi"),
+            ),
+        )
+        pod = MockObject(
+            metadata=MockObject(namespace="composer-user-workloads", labels={}),
+            spec=MockObject(containers=[container_obj]),
+        )
+
+        policy.pod_mutation_hook(pod)
+
+        self.assertEqual(container_obj.resources.requests.cpu, "4000m")
+        self.assertEqual(container_obj.resources.requests.memory, "8192Mi")
+        self.assertEqual(container_obj.resources.limits.cpu, "4000m")
+        self.assertEqual(container_obj.resources.limits.memory, "8192Mi")
+
     def test_injects_governance_labels(self):
         """Verify standard corporate/governance labels are attached."""
         policy.pod_mutation_hook(self.pod)

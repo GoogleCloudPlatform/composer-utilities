@@ -208,6 +208,23 @@ def pod_mutation_hook(pod: Any) -> None:
         _enforce_container_resources(container)
 
 
+def _get_resource(target: Any, key: str) -> Any:
+    """Gets a resource value safely from either a dict or object."""
+    if target is None:
+        return None
+    if isinstance(target, dict):
+        return target.get(key)
+    return getattr(target, key, None)
+
+
+def _set_resource(target: Any, key: str, value: str) -> None:
+    """Sets a resource value safely on either a dict or object."""
+    if isinstance(target, dict):
+        target[key] = value
+    else:
+        setattr(target, key, value)
+
+
 def _enforce_container_resources(container: Any) -> None:
     """Enforces requests and limits on a single container."""
     container_name = getattr(container, "name", "unnamed")
@@ -236,33 +253,21 @@ def _enforce_container_resources(container: Any) -> None:
             return
 
     # Handle both V1ResourceRequirements object and plain dict
-    requests = getattr(resources, "requests", None)
-    if requests is None and isinstance(resources, dict):
-        requests = resources.get("requests")
+    requests = _get_resource(resources, "requests")
     if requests is None:
-        if isinstance(resources, dict):
-            resources["requests"] = {}
-            requests = resources["requests"]
-        else:
-            resources.requests = {}
-            requests = resources.requests
+        requests = {}
+        _set_resource(resources, "requests", requests)
 
-    limits = getattr(resources, "limits", None)
-    if limits is None and isinstance(resources, dict):
-        limits = resources.get("limits")
+    limits = _get_resource(resources, "limits")
     if limits is None:
-        if isinstance(resources, dict):
-            resources["limits"] = {}
-            limits = resources["limits"]
-        else:
-            resources.limits = {}
-            limits = resources.limits
+        limits = {}
+        _set_resource(resources, "limits", limits)
 
     # Enforce CPU Requests
-    cpu_req = requests.get("cpu") if isinstance(requests, dict) else getattr(requests, "cpu", None)
+    cpu_req = _get_resource(requests, "cpu")
     parsed_cpu = parse_cpu_to_cores(cpu_req)
     if parsed_cpu is None:
-        requests["cpu"] = DEFAULT_CPU_REQUEST
+        _set_resource(requests, "cpu", DEFAULT_CPU_REQUEST)
         logger.info("Cluster Policy [%s]: Set default CPU request '%s'", container_name, DEFAULT_CPU_REQUEST)
     elif parsed_cpu > MAX_ALLOWED_CPU_CORES:
         max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
@@ -274,13 +279,13 @@ def _enforce_container_resources(container: Any) -> None:
             MAX_ALLOWED_CPU_CORES,
             max_cpu_str,
         )
-        requests["cpu"] = max_cpu_str
+        _set_resource(requests, "cpu", max_cpu_str)
 
     # Enforce Memory Requests
-    mem_req = requests.get("memory") if isinstance(requests, dict) else getattr(requests, "memory", None)
+    mem_req = _get_resource(requests, "memory")
     parsed_mem = parse_memory_to_mib(mem_req)
     if parsed_mem is None:
-        requests["memory"] = DEFAULT_MEMORY_REQUEST
+        _set_resource(requests, "memory", DEFAULT_MEMORY_REQUEST)
         logger.info("Cluster Policy [%s]: Set default Memory request '%s'", container_name, DEFAULT_MEMORY_REQUEST)
     elif parsed_mem > MAX_ALLOWED_MEMORY_MIB:
         max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
@@ -292,33 +297,43 @@ def _enforce_container_resources(container: Any) -> None:
             MAX_ALLOWED_MEMORY_MIB,
             max_mem_str,
         )
-        requests["memory"] = max_mem_str
+        _set_resource(requests, "memory", max_mem_str)
 
     # Enforce CPU Limits
-    cpu_lim = limits.get("cpu") if isinstance(limits, dict) else getattr(limits, "cpu", None)
+    cpu_lim = _get_resource(limits, "cpu")
     parsed_lim_cpu = parse_cpu_to_cores(cpu_lim)
-    if parsed_lim_cpu is not None and parsed_lim_cpu > MAX_ALLOWED_CPU_CORES:
+    if parsed_lim_cpu is None:
+        _set_resource(limits, "cpu", DEFAULT_CPU_LIMIT)
+        logger.info("Cluster Policy [%s]: Set default CPU limit '%s'", container_name, DEFAULT_CPU_LIMIT)
+    elif parsed_lim_cpu > MAX_ALLOWED_CPU_CORES:
         max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
         logger.warning(
-            "Cluster Policy [%s]: CPU limit '%s' exceeded max allowed. Clamping to '%s'.",
+            "Cluster Policy [%s]: CPU limit '%s' (%.1f cores) exceeded max allowed (%.1f cores). Clamping to '%s'.",
             container_name,
             cpu_lim,
+            parsed_lim_cpu,
+            MAX_ALLOWED_CPU_CORES,
             max_cpu_str,
         )
-        limits["cpu"] = max_cpu_str
+        _set_resource(limits, "cpu", max_cpu_str)
 
     # Enforce Memory Limits
-    mem_lim = limits.get("memory") if isinstance(limits, dict) else getattr(limits, "memory", None)
+    mem_lim = _get_resource(limits, "memory")
     parsed_lim_mem = parse_memory_to_mib(mem_lim)
-    if parsed_lim_mem is not None and parsed_lim_mem > MAX_ALLOWED_MEMORY_MIB:
+    if parsed_lim_mem is None:
+        _set_resource(limits, "memory", DEFAULT_MEMORY_LIMIT)
+        logger.info("Cluster Policy [%s]: Set default Memory limit '%s'", container_name, DEFAULT_MEMORY_LIMIT)
+    elif parsed_lim_mem > MAX_ALLOWED_MEMORY_MIB:
         max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
         logger.warning(
-            "Cluster Policy [%s]: Memory limit '%s' exceeded max allowed. Clamping to '%s'.",
+            "Cluster Policy [%s]: Memory limit '%s' (%.1f MiB) exceeded max allowed (%.1f MiB). Clamping to '%s'.",
             container_name,
             mem_lim,
+            parsed_lim_mem,
+            MAX_ALLOWED_MEMORY_MIB,
             max_mem_str,
         )
-        limits["memory"] = max_mem_str
+        _set_resource(limits, "memory", max_mem_str)
 
 
 # ==============================================================================
