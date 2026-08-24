@@ -1,0 +1,76 @@
+name: Workshop IAM CI
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["workshop_iam/**", ".github/workflows/workshop_iam.yml"]
+  pull_request:
+    branches: ["main"]
+    paths: ["workshop_iam/**", ".github/workflows/workshop_iam.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-lint-and-validate:
+    name: "Terraform Lint and Validation"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.7"
+
+      - name: Terraform Format Check
+        run: |
+          terraform fmt -check -recursive workshop_iam
+
+      - name: Terraform Init and Validate
+        run: |
+          cd workshop_iam
+          terraform init -backend=false
+          terraform validate
+
+  python-lint:
+    name: "Ruff Lint and Format Checks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check formatting with ruff
+        run: |
+          uv run --project workshop_iam --extra dev ruff format --check workshop_iam
+
+      - name: Lint with ruff
+        run: |
+          uv run --project workshop_iam --extra dev ruff check workshop_iam
+
+  test:
+    name: "Python Unit Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run unit tests
+        run: |
+          pytest workshop_iam/tests/
