@@ -54,6 +54,13 @@ except ImportError:
         """Fallback exception when airflow is not installed."""
         pass
 
+try:
+    from airflow.policies import hookimpl
+except ImportError:
+    def hookimpl(f):
+        """Fallback hookimpl decorator when airflow is not installed."""
+        return f
+
 # Configure logger
 logger = logging.getLogger("airflow.cluster_policy")
 
@@ -167,6 +174,7 @@ def parse_memory_to_mib(mem_val: str | int | float | None) -> float | None:
 # POD MUTATION HOOK (Airflow Cluster Policy)
 # ==============================================================================
 
+@hookimpl
 def pod_mutation_hook(pod: Any) -> None:
     """Mutates Kubernetes Pods created by KubernetesPodOperator or GKEStartPodOperator.
 
@@ -422,6 +430,7 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
 # TASK POLICY (Airflow Cluster Policy)
 # ==============================================================================
 
+@hookimpl
 def task_policy(task: Any) -> None:
     """Enforces task-level operational standards across all operators.
 
@@ -533,6 +542,7 @@ def task_policy(task: Any) -> None:
 # DAG POLICY (Airflow Cluster Policy)
 # ==============================================================================
 
+@hookimpl
 def dag_policy(dag: Any) -> None:
     """Enforces metadata, concurrency, and gatekeeping governance on DAGs."""
     dag_id = getattr(dag, "dag_id", "unknown")
