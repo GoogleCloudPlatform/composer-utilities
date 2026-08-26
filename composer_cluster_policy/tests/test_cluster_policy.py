@@ -21,9 +21,13 @@ import unittest
 from unittest.mock import patch
 
 # Ensure the module can be imported
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import airflow_local_settings as policy
+try:
+    from composer_cluster_policy import policies as policy
+except ImportError:
+    import airflow_local_settings as policy
 
 
 class MockObject:
@@ -203,11 +207,37 @@ class TestDagPolicy(unittest.TestCase):
     def test_dag_policy_runs_cleanly(self):
         dag = MockObject(
             dag_id="test_dag",
+            catchup=False,
             tags=["domain:data"],
             default_args={"owner": "data-team"},
         )
-        # Should execute without errors
         policy.dag_policy(dag)
+
+    def test_dag_policy_rejects_catchup(self):
+        """Verify dag_policy raises AirflowClusterPolicyViolation when catchup=True."""
+        dag = MockObject(
+            dag_id="bad_dag",
+            catchup=True,
+            tags=["domain:data"],
+            default_args={"owner": "data-team"},
+        )
+        with self.assertRaises(policy.AirflowClusterPolicyViolation):
+            policy.dag_policy(dag)
+
+    def test_dag_policy_clamps_concurrency_and_timeout(self):
+        """Verify dag_policy clamps max_active_runs and injects dagrun_timeout."""
+        dag = MockObject(
+            dag_id="unconstrained_dag",
+            catchup=False,
+            max_active_runs=16,
+            dagrun_timeout=None,
+            tags=[],
+            default_args={"owner": "data-team"},
+        )
+        policy.dag_policy(dag)
+        self.assertEqual(dag.max_active_runs, 2)
+        self.assertEqual(dag.dagrun_timeout, timedelta(hours=4))
+        self.assertIn("policy:remediated", dag.tags)
 
 
 if __name__ == "__main__":
