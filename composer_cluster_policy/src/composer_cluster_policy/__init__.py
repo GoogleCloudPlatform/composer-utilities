@@ -22,5 +22,5 @@ from composer_cluster_policy.policies import (
     task_policy,
 )
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __all__ = ["task_policy", "dag_policy", "pod_mutation_hook", "__version__"]

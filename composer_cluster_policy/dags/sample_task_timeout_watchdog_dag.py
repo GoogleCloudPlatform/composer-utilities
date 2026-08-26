@@ -31,6 +31,7 @@ from airflow.operators.bash import BashOperator
     schedule=None,
     start_date=datetime.datetime(2026, 1, 1),
     catchup=False,
+    default_args={"owner": "data-engineering-team"},
     tags=["domain:data-platform", "pattern:timeout-watchdog", "policy:enforced"],
 )
 def sample_task_timeout_watchdog_dag():

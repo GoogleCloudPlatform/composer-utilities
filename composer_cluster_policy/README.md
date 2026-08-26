@@ -68,61 +68,168 @@ composer_cluster_policy/
    * **KPO Resilience:** Automatically sets minimum retries (2) and exponential backoff for `KubernetesPodOperator` tasks.
    * **Retry Clamping:** Caps excessive retry attempts on standard tasks (max 3).
 
-3. **DAG Metadata Standards (`dag_policy`):**
-   * **Tags & Ownership:** Audits DAG definitions to ensure valid ownership and categorization tags.
-   * **Catchup Protection:** Warns or disables catchup on unmanaged DAGs to prevent scheduler overloading.
+3. **DAG Metadata & Governance Standards (`dag_policy`):**
+   * **Catchup Stampede Gatekeeping:** Raises `AirflowClusterPolicyViolation` if `catchup=True` is specified with an unmanaged timetable, preventing scheduler and metadata database saturation.
+   * **Ownership Enforcement:** Blocks unassigned pipelines (`owner="root"` or `"airflow"`).
+   * **Concurrency Clamping:** Clamps `max_active_runs` to a safe threshold (default 2) to protect database connection pools.
+   * **Global Run Duration Ceiling:** Injects `dagrun_timeout` (default 4 hours) to prevent cascade task deadlocks.
+   * **Catalog Tags:** Injects default tags (`["unassigned-domain", "policy:remediated"]`) for FinOps cost allocation and UI searchability.
 
 ---
 
-## Deployment Guide: Official PyPI Package (Option 2)
+## Architectural Insights & Pitfalls Encountered
 
-### Step 1: Build the Wheel
-From the `composer_cluster_policy` directory, build the wheel:
+When deploying custom cluster policies to modern Cloud Composer (Composer 2.9+ and Composer 3 / Airflow 3), central platform teams encounter several critical platform constraints:
+
+### 1. Why `airflow_local_settings.py` in GCS Fails (Bug `b/381815171`)
+* In Composer 1 and early Composer 2, users placed `airflow_local_settings.py` in `dags/` or `plugins/`.
+* **The Pitfall**: Google Cloud Composer relies on internal `airflow_local_settings` hooks for GKE worker telemetry, environment variable management, and Kubernetes executor initialization. Overwriting `airflow_local_settings.py` directly is explicitly unsupported and can break internal Composer services.
+* **The Fix**: Policies must be packaged as an isolated Python package with entry points registered under `[airflow.policy]`.
+
+### 2. Airflow 3 Task SDK Process Isolation
+* In Airflow 3, worker execution runs in a decoupled Task SDK process (`RuntimeTaskInstance`).
+* **The Pitfall**: On the worker, `task.dag` does not exist in memory. Therefore, `dag_policy` **cannot** be evaluated inside worker hooks (`task_policy` or task execution listeners).
+* **The Fix**: `dag_policy` is strictly evaluated during DAG parsing inside the **`dag-processor`** container. The `dag-processor` does not read GCS `plugins/`, making PyPI package entry points the only viable mechanism to enforce DAG-level policies.
+
+### 3. Cloud Build Container Isolation (Why GCS Wheels Fail)
+* When updating dependencies via `gcloud composer environments update --update-pypi-packages`, `pip install` runs inside an ephemeral **Google Cloud Build** container, not on the live GKE cluster.
+* **The Pitfall**: Cloud Build does not have Cloud Storage FUSE mounted. Specifying paths like `/home/airflow/gcs/data/package.whl` in `requirements.txt` fails with `FileNotFoundError`.
+* **The Pitfall (PEP-508 Direct URLs)**: Specifying `package @ git+https://...` fails with an invalid PEP-508 package identifier in Composer's API validation.
+* **The Fix**: Host wheels in **Google Cloud Artifact Registry** (a private Python repository within your GCP project) and point Composer to it via `gs://<bucket>/config/pip/pip.conf`.
+
+### 4. Pluggy Interface Requirements (`@hookimpl` & Module Entrypoint)
+* Apache Airflow uses the `Pluggy` plugin engine to discover cluster policies from `[airflow.policy]`.
+* **The Pitfall**: If policy functions do not have the `@hookimpl` decorator (`from airflow.policies import hookimpl`), Pluggy loads the package but discovers 0 hook implementations, silently ignoring the policy.
+* **The Fix**:
+  1. Decorate all policy functions with `@hookimpl`:
+     ```python
+     from airflow.policies import hookimpl
+
+
+     @hookimpl
+     def dag_policy(dag: Any) -> None:
+       ...
+```
+  2. Point the entry point in `pyproject.toml` or `setup.py` to the **module**, not individual function names:
+     ```toml
+     [project.entry-points."airflow.policy"]
+     composer_cluster_policy = "composer_cluster_policy.policies"
+     ```
+
+---
+
+## Deployment Guide: Enterprise Artifact Registry Method
+
+### Option A: Turn-Key Automated Deployment (Recommended)
+
+Run the included deployment script to build the wheel, upload to Artifact Registry, configure `pip.conf`, and trigger the Composer update in a single command:
+
 ```bash
-python3 -m pip install wheel setuptools
-pip wheel --no-deps -w dist .
-# Generates: dist/composer_cluster_policy-1.0.0-py3-none-any.whl
+# Usage: ./deploy_policy.sh <ENV_NAME> <LOCATION> <ARTIFACT_REGISTRY_REPO>
+./deploy_policy.sh composer-3-airflow-3 us-central1 composer-packages
 ```
 
-### Step 2: Upload to Cloud Storage
-Upload the wheel to your Cloud Composer environment bucket's `data/` folder:
+---
+
+### Option B: Manual Step-by-Step Deployment
+
+#### Step 1: Create Private Artifact Registry Python Repository
 ```bash
-export COMPOSER_ENVIRONMENT="your-composer-env"
-export LOCATION="us-central1"
-export BUCKET=$(gcloud composer environments describe $COMPOSER_ENVIRONMENT \
-    --location=$LOCATION \
+gcloud artifacts repositories create composer-packages \
+    --repository-format=python \
+    --location=us-central1 \
+    --description="Private repository for Cloud Composer cluster policies"
+```
+
+#### Step 2: Grant Permissions to Composer & Cloud Build
+```bash
+COMPOSER_SA=$(gcloud composer environments describe composer-3-airflow-3 \
+    --location=us-central1 \
+    --format="value(config.nodeConfig.serviceAccount)")
+PROJECT_ID=$(gcloud config get-value project)
+PROJECT_NUM=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+CLOUDBUILD_SA="${PROJECT_NUM}@cloudbuild.gserviceaccount.com"
+
+gcloud artifacts repositories add-iam-policy-binding composer-packages \
+    --location=us-central1 \
+    --member="serviceAccount:${COMPOSER_SA}" \
+    --role="roles/artifactregistry.reader"
+
+gcloud artifacts repositories add-iam-policy-binding composer-packages \
+    --location=us-central1 \
+    --member="serviceAccount:${CLOUDBUILD_SA}" \
+    --role="roles/artifactregistry.reader"
+```
+
+#### Step 3: Build & Upload the Wheel
+```bash
+# 1. Build
+pip3 wheel --no-deps -w dist/ .
+
+# 2. Upload with twine using OAuth2 access token
+python3 -m twine upload \
+    --username oauth2accesstoken \
+    --password "$(gcloud auth print-access-token)" \
+    --repository-url https://us-central1-python.pkg.dev/$PROJECT_ID/composer-packages/ \
+    dist/composer_cluster_policy-*.whl
+```
+
+#### Step 4: Configure `pip.conf` in Environment Cloud Storage
+```bash
+BUCKET=$(gcloud composer environments describe composer-3-airflow-3 \
+    --location=us-central1 \
     --format="value(config.storageConfig.bucket)")
 
-gcloud storage cp dist/composer_cluster_policy-1.0.0-py3-none-any.whl gs://$BUCKET/data/
+cat << EOF > pip.conf
+[global]
+extra-index-url = https://us-central1-python.pkg.dev/${PROJECT_ID}/composer-packages/simple/
+EOF
+
+gcloud storage cp pip.conf gs://${BUCKET}/config/pip/pip.conf
+rm pip.conf
 ```
 
-### Step 3: Install as a Python Package in Cloud Composer
-Create or update your `requirements.txt` to include the wheel path:
+#### Step 5: Update Cloud Composer Environment
 ```bash
-echo "/home/airflow/gcs/data/composer_cluster_policy-1.0.0-py3-none-any.whl" > requirements.txt
+echo "composer-cluster-policy==1.0.1" > requirements.txt
 
-gcloud composer environments update $COMPOSER_ENVIRONMENT \
-    --location=$LOCATION \
-    --update-pypi-packages-from-file=requirements.txt
+gcloud composer environments update composer-3-airflow-3 \
+    --location=us-central1 \
+    --update-pypi-packages-from-file=requirements.txt \
+    --async
 ```
 
 ---
 
-## Verification & Testing
+## Participant Guide: Testing & Verifying with Your Repo
 
-### 1. Run Unit Tests Locally
+For workshop participants running DAGs against the governed cluster:
+
+### 1. Run Unit Tests Locally (Shift-Left Validation)
+Before deploying any DAG, verify policies locally:
 ```bash
 python3 -m unittest discover -s tests
-# Ran 14 tests in 0.001s, OK
+# Ran 16 tests in 0.001s, OK
 ```
 
-### 2. Deploy Verification DAGs
-Deploy the sample verification DAGs to your environment:
+### 2. Deploy Sample Verification DAGs
 ```bash
-gcloud storage cp dags/sample_kpo_resource_enforcement_dag.py gs://$BUCKET/dags/
-gcloud storage cp dags/sample_task_timeout_watchdog_dag.py gs://$BUCKET/dags/
+# Upload sample demonstration DAGs
+gcloud storage cp dags/sample_dag_policy_violations_dag.py gs://${BUCKET}/dags/
+gcloud storage cp dags/sample_task_timeout_watchdog_dag.py gs://${BUCKET}/dags/
+gcloud storage cp dags/sample_kpo_resource_enforcement_dag.py gs://${BUCKET}/dags/
 ```
 
-### 3. Verify Live Execution
-* **KPO Resource Clamping**: Trigger `sample_kpo_resource_enforcement`. In the task logs, observe CPU clamped from 8000m -> 4000m, Memory clamped from 16000Mi -> 8192Mi, and `managed-by: composer-cluster-policy` attached to the pod.
-* **Task Timeout Watchdog**: Trigger `sample_task_timeout_watchdog`. Observe the hanging 30s query actively killed at 10.3s via `SIGTERM` / `AirflowTaskTimeout`, immediately freeing worker capacity.
+### 3. Verify Live Governance Across the 3 Levels
+
+1. **DAG-Level (`sample_dag_policy_violations_dag.py`)**:
+   * **Anti-Pattern Tested**: `catchup=True`, `owner="root"`, `max_active_runs=16`, `tags=[]`.
+   * **Observed Result**: The DAG Processor flags the DAG. `AirflowClusterPolicyViolation` blocks the catchup stampede at the front door with a bright red banner in the Airflow UI, scheduling 0 runs.
+
+2. **Task-Level (`sample_task_timeout_watchdog_dag.py`)**:
+   * **Anti-Pattern Tested**: Unbounded 30-second hanging query without an `execution_timeout`.
+   * **Observed Result**: `task_policy` injects a 10s watchdog. The query is terminated at 10.3s via `SIGTERM` / `AirflowTaskTimeout`, immediately freeing the Celery worker slot.
+
+3. **Pod-Level (`sample_kpo_resource_enforcement_dag.py`)**:
+   * **Anti-Pattern Tested**: Excessive 8-core CPU and 16 GiB RAM request on `KubernetesPodOperator`.
+   * **Observed Result**: `pod_mutation_hook` intercepts the pod prior to GKE scheduling, clamping CPU to 4000m and RAM to 8192Mi, and attaching `managed-by: composer-cluster-policy` labels.

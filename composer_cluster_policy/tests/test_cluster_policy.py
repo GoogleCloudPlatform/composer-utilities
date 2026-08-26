@@ -239,6 +239,17 @@ class TestDagPolicy(unittest.TestCase):
         self.assertEqual(dag.dagrun_timeout, timedelta(hours=4))
         self.assertIn("policy:remediated", dag.tags)
 
+    def test_dag_policy_exempts_airflow_monitoring(self):
+        """Verify dag_policy safely ignores internal Cloud Composer monitoring DAGs."""
+        dag = MockObject(
+            dag_id="airflow_monitoring",
+            catchup=True,
+            default_args={"owner": "None"},
+            tags=[],
+        )
+        # Should not raise any AirflowClusterPolicyViolation
+        policy.dag_policy(dag)
+
 
 if __name__ == "__main__":
     unittest.main()

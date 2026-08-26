@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "composer_cluster_policy"
-version = "1.0.1"
+version = "1.0.2"
 description = "Airflow Cluster Policies and Governance for Google Cloud Composer"
 readme = "README.md"
 requires-python = ">=3.9"
