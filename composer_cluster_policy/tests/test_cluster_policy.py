@@ -18,7 +18,7 @@ from datetime import timedelta
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 # Ensure the module can be imported
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -146,6 +146,14 @@ class TestPodMutationHook(unittest.TestCase):
         self.assertEqual(container_obj.resources.limits.cpu, "4000m")
         self.assertEqual(container_obj.resources.limits.memory, "8192Mi")
 
+    def test_injects_metadata_delay_init_container(self):
+        """Verify Solution 1: custom-init-setup init container is injected to delay for GKE metadata server."""
+        with patch.object(policy, "ENABLE_INIT_CONTAINER_DELAY", True):
+            policy.pod_mutation_hook(self.pod)
+            self.assertIsNotNone(self.pod.spec.init_containers)
+            names = [getattr(c, 'name', '') for c in self.pod.spec.init_containers]
+            self.assertIn('custom-init-setup', names)
+
     def test_injects_governance_labels(self):
         """Verify standard corporate/governance labels are attached."""
         policy.pod_mutation_hook(self.pod)
@@ -173,6 +181,15 @@ class TestTaskPolicy(unittest.TestCase):
         task = MockObject(task_id="test_task", execution_timeout=None, retries=1)
         policy.task_policy(task)
         self.assertEqual(task.execution_timeout, timedelta(hours=4))
+
+    def test_enforces_kpo_retries_and_backoff(self):
+        """Verify Solution 2: KPO tasks receive minimum retries and backoff for metadata server resilience."""
+        kpo_task = MockObject(task_id='gcloud_ls', execution_timeout=timedelta(hours=1), retries=0, retry_delay=timedelta(seconds=0))
+        kpo_task.__class__.__name__ = 'KubernetesPodOperator'
+        policy.task_policy(kpo_task)
+        self.assertEqual(kpo_task.retries, 2)
+        self.assertEqual(kpo_task.retry_delay, timedelta(seconds=10))
+        self.assertTrue(getattr(kpo_task, 'retry_exponential_backoff', False))
 
     def test_clamps_excessive_retries(self):
         task = MockObject(task_id="test_task", execution_timeout=timedelta(minutes=30), retries=10)

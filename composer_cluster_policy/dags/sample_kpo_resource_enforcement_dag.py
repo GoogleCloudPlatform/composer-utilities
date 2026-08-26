@@ -51,6 +51,10 @@ DEFAULT_ARGS = {
 }
 
 
+import os
+
+PROJECT_ID = os.environ.get("GCP_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT", "composer-utils")
+
 @dag(
     dag_id="sample_kpo_resource_enforcement",
     description="Demonstrates cluster policy enforcement on KubernetesPodOperator workloads",
@@ -71,7 +75,7 @@ def sample_kpo_resource_enforcement_dag():
         cmds=["bash"],
         arguments=[
             "-c",
-            "gcloud storage ls --long",
+            f"gcloud storage ls --long --project={PROJECT_ID}",
         ],
         namespace="composer-user-workloads",
         is_delete_operator_pod=True,

@@ -32,8 +32,10 @@ Using Airflow Cluster Policies (`airflow_local_settings.py`), this tool intercep
 composer_cluster_policy/
 ├── README.md                      # Comprehensive user and deployment guide
 ├── airflow_local_settings.py      # Core Airflow cluster policy hooks
+├── cluster_policy_plugin.py       # Airflow 3 runtime listener & plugin loader
 ├── dags/
-│   └── sample_kpo_resource_enforcement_dag.py  # Standardized demonstration DAG
+│   ├── sample_kpo_resource_enforcement_dag.py  # KPO resource clamping demonstration DAG
+│   └── sample_task_timeout_watchdog_dag.py     # Task execution timeout watchdog DAG
 └── tests/
     ├── __init__.py
     └── test_cluster_policy.py     # Unit test suite
@@ -44,20 +46,21 @@ composer_cluster_policy/
 ## Quick Setup
 
 ### 1. Deploy the Cluster Policy to Cloud Composer
-Copy `airflow_local_settings.py` into your Cloud Composer environment's `plugins/` directory:
+Copy `airflow_local_settings.py` and `cluster_policy_plugin.py` into your Cloud Composer environment's `plugins/` directory:
 
 ```bash
 # Set your environment variables
 export COMPOSER_ENVIRONMENT="your-composer-env"
-export LOCATION="us-east1"
+export LOCATION="us-central1"
 
 # Get the DAGs/Plugins GCS bucket
 export BUCKET=$(gcloud composer environments describe $COMPOSER_ENVIRONMENT \
     --location=$LOCATION \
     --format="value(config.storageConfig.bucket)")
 
-# Upload the policy file to the plugins/ folder
+# Upload the policy and plugin to the plugins/ folder
 gcloud storage cp composer_cluster_policy/airflow_local_settings.py gs://$BUCKET/plugins/
+gcloud storage cp composer_cluster_policy/cluster_policy_plugin.py gs://$BUCKET/plugins/
 ```
 
 ### 2. Deploy the Sample Verification DAG
