@@ -14,10 +14,9 @@
 
 """Standardized cluster tier definitions and configuration builders."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from config.governance_rules import PlatformGovernanceRules
@@ -58,7 +57,7 @@ class TierSpecification:
     description: str = ""
 
 
-TIER_DEFINITIONS: Dict[ClusterTier, TierSpecification] = {
+TIER_DEFINITIONS: dict[ClusterTier, TierSpecification] = {
     ClusterTier.DEV_SINGLE_NODE: TierSpecification(
         master_num_instances=1,
         master_machine_type="e2-standard-4",
@@ -121,16 +120,16 @@ class ClusterConfigBuilder:
         project_id: str,
         region: str,
         rules: PlatformGovernanceRules,
-        subnetwork_uri: Optional[str] = None,
-        service_account: Optional[str] = None,
-        idle_delete_ttl_seconds: Optional[int] = None,
-        auto_delete_ttl_seconds: Optional[int] = None,
-        image_version: Optional[str] = None,
-        cmek_kms_key: Optional[str] = None,
-        optional_components: Optional[List[str]] = None,
-        spark_properties: Optional[Dict[str, str]] = None,
-        custom_overrides: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        subnetwork_uri: str | None = None,
+        service_account: str | None = None,
+        idle_delete_ttl_seconds: int | None = None,
+        auto_delete_ttl_seconds: int | None = None,
+        image_version: str | None = None,
+        cmek_kms_key: str | None = None,
+        optional_components: list[str] | None = None,
+        spark_properties: dict[str, str] | None = None,
+        custom_overrides: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Assembles a hardened, standardized cluster configuration."""
 
         # 1. Resolve subnetwork and service account
@@ -141,13 +140,17 @@ class ClusterConfigBuilder:
             )
 
         resolved_service_account = service_account
-        if not resolved_service_account and rules.default_service_account_template and project_id:
+        if (
+            not resolved_service_account
+            and rules.default_service_account_template
+            and project_id
+        ):
             resolved_service_account = rules.default_service_account_template.format(
                 project_id=project_id
             )
 
         # 2. Base configuration dictionary
-        gce_cluster_config: Dict[str, Any] = {
+        gce_cluster_config: dict[str, Any] = {
             "internal_ip_only": rules.require_internal_ip_only,
             "tags": list(rules.mandatory_network_tags),
             "metadata": {
@@ -163,18 +166,18 @@ class ClusterConfigBuilder:
                 "https://www.googleapis.com/auth/cloud-platform"
             ]
 
-        config: Dict[str, Any] = {
-            "gce_cluster_config": gce_cluster_config,
+        config: dict[str, Any] = {
             "endpoint_config": {
                 "enable_http_port_access": rules.enforce_component_gateway,
             },
+            "gce_cluster_config": gce_cluster_config,
             "software_config": {
                 "image_version": image_version or rules.default_image_version,
+                "optional_components": list(optional_components or []),
                 "properties": {
                     "dataproc:dataproc.conscrypt.provider.enable": "false",
                     **(spark_properties or {}),
                 },
-                "optional_components": list(optional_components or []),
             },
         }
 
@@ -182,52 +185,66 @@ class ClusterConfigBuilder:
         if tier in TIER_DEFINITIONS:
             spec = TIER_DEFINITIONS[tier]
             config["master_config"] = {
-                "num_instances": spec.master_num_instances,
-                "machine_type_uri": spec.master_machine_type,
                 "disk_config": {
-                    "boot_disk_type": "pd-standard",
                     "boot_disk_size_gb": spec.master_disk_size_gb,
+                    "boot_disk_type": "pd-standard",
                 },
+                "machine_type_uri": spec.master_machine_type,
+                "num_instances": spec.master_num_instances,
             }
 
             if spec.worker_num_instances > 0:
                 config["worker_config"] = {
-                    "num_instances": spec.worker_num_instances,
-                    "machine_type_uri": spec.worker_machine_type,
                     "disk_config": {
-                        "boot_disk_type": "pd-standard",
                         "boot_disk_size_gb": spec.worker_disk_size_gb,
+                        "boot_disk_type": "pd-standard",
                     },
+                    "machine_type_uri": spec.worker_machine_type,
+                    "num_instances": spec.worker_num_instances,
                 }
 
             if spec.secondary_worker_num_instances > 0:
                 config["secondary_worker_config"] = {
-                    "num_instances": spec.secondary_worker_num_instances,
                     "is_preemptible": spec.secondary_worker_is_preemptible,
+                    "num_instances": spec.secondary_worker_num_instances,
                 }
 
             # Lifecycle TTL resolution
-            resolved_idle_ttl = idle_delete_ttl_seconds or spec.default_idle_delete_ttl_seconds
-            resolved_auto_ttl = auto_delete_ttl_seconds or spec.default_auto_delete_ttl_seconds
+            resolved_idle_ttl = (
+                idle_delete_ttl_seconds or spec.default_idle_delete_ttl_seconds
+            )
+            resolved_auto_ttl = (
+                auto_delete_ttl_seconds or spec.default_auto_delete_ttl_seconds
+            )
         else:
             # CUSTOM_GUARDED - start with minimum defaults
             config["master_config"] = {
-                "num_instances": 1,
+                "disk_config": {
+                    "boot_disk_size_gb": 100,
+                    "boot_disk_type": "pd-standard",
+                },
                 "machine_type_uri": "n2-standard-4",
-                "disk_config": {"boot_disk_size_gb": 100, "boot_disk_type": "pd-standard"},
+                "num_instances": 1,
             }
             config["worker_config"] = {
-                "num_instances": 2,
+                "disk_config": {
+                    "boot_disk_size_gb": 100,
+                    "boot_disk_type": "pd-standard",
+                },
                 "machine_type_uri": "n2-standard-4",
-                "disk_config": {"boot_disk_size_gb": 100, "boot_disk_type": "pd-standard"},
+                "num_instances": 2,
             }
-            resolved_idle_ttl = idle_delete_ttl_seconds or rules.default_idle_delete_ttl_seconds
-            resolved_auto_ttl = auto_delete_ttl_seconds or rules.default_auto_delete_ttl_seconds
+            resolved_idle_ttl = (
+                idle_delete_ttl_seconds or rules.default_idle_delete_ttl_seconds
+            )
+            resolved_auto_ttl = (
+                auto_delete_ttl_seconds or rules.default_auto_delete_ttl_seconds
+            )
 
         # 4. Enforce Lifecycle policy (Idle TTL + Auto-Delete TTL)
         config["lifecycle_config"] = {
-            "idle_delete_ttl": f"{resolved_idle_ttl}s",
             "auto_delete_ttl": f"{resolved_auto_ttl}s",
+            "idle_delete_ttl": f"{resolved_idle_ttl}s",
         }
 
         # 5. Inject mandatory platform initialization actions
@@ -235,7 +252,9 @@ class ClusterConfigBuilder:
         for action in rules.mandatory_initialization_actions:
             exec_file = action.get("executable_file", "").format(region=region)
             timeout = action.get("execution_timeout", "300s")
-            init_actions.append({"executable_file": exec_file, "execution_timeout": timeout})
+            init_actions.append(
+                {"executable_file": exec_file, "execution_timeout": timeout}
+            )
         if init_actions:
             config["initialization_actions"] = init_actions
 
@@ -250,7 +269,7 @@ class ClusterConfigBuilder:
         return config
 
     @staticmethod
-    def _deep_merge(base: Dict[str, Any], overrides: Dict[str, Any]) -> None:
+    def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> None:
         """Recursively merge overrides into the base dictionary."""
         for key, value in overrides.items():
             if isinstance(value, dict) and key in base and isinstance(base[key], dict):

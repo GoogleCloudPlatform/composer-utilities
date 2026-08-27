@@ -16,18 +16,18 @@
 
 try:
     from config.cluster_tiers import (
+        TIER_DEFINITIONS,
         ClusterConfigBuilder,
         ClusterTier,
-        TIER_DEFINITIONS,
         TierSpecification,
     )
     from config.governance_rules import DEFAULT_PLATFORM_RULES, PlatformGovernanceRules
 except ImportError:
     try:
         from plugins.config.cluster_tiers import (
+            TIER_DEFINITIONS,
             ClusterConfigBuilder,
             ClusterTier,
-            TIER_DEFINITIONS,
             TierSpecification,
         )
         from plugins.config.governance_rules import (
@@ -36,9 +36,9 @@ except ImportError:
         )
     except (ImportError, ValueError):
         from .cluster_tiers import (
+            TIER_DEFINITIONS,
             ClusterConfigBuilder,
             ClusterTier,
-            TIER_DEFINITIONS,
             TierSpecification,
         )
         from .governance_rules import (
@@ -47,10 +47,10 @@ except ImportError:
         )
 
 __all__ = [
-    "PlatformGovernanceRules",
     "DEFAULT_PLATFORM_RULES",
-    "ClusterTier",
-    "TierSpecification",
     "TIER_DEFINITIONS",
     "ClusterConfigBuilder",
+    "ClusterTier",
+    "PlatformGovernanceRules",
+    "TierSpecification",
 ]

@@ -164,7 +164,10 @@ create_cluster = DataprocCreateClusterOperator(
 
 ### ✅ After: Platform Governed Plugin Operator (10 Lines)
 ```python
-from operators.secure_dataproc_operator import ClusterTier, SecureDataprocCreateClusterOperator
+from operators.secure_dataproc_operator import (
+    ClusterTier,
+    SecureDataprocCreateClusterOperator,
+)
 
 # Clean, declarative, automatically hardened and FinOps compliant!
 create_cluster = SecureDataprocCreateClusterOperator(
@@ -173,11 +176,11 @@ create_cluster = SecureDataprocCreateClusterOperator(
     region="us-central1",
     cluster_name="analytics-batch-{{ ds_nodash }}",
     tier=ClusterTier.STANDARD_ANALYTICS,  # Injects 4 primary + 2 spot workers
-    team="marketing-analytics",           # Mandatory FinOps tracking
-    cost_center="cc-10492",               # Mandatory billing attribution
-    environment="production",             # Auto-injects production CMEK encryption
+    team="marketing-analytics",  # Mandatory FinOps tracking
+    cost_center="cc-10492",  # Mandatory billing attribution
+    environment="production",  # Auto-injects production CMEK encryption
     data_classification="confidential",
-    idle_delete_ttl_minutes=60,           # Guaranteed auto-deletion when idle
+    idle_delete_ttl_minutes=60,  # Guaranteed auto-deletion when idle
 )
 ```
 

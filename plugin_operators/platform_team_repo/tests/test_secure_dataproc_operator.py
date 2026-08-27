@@ -77,7 +77,9 @@ class TestSecureDataprocOperators(unittest.TestCase):
 
         # Verify cluster_config generated contains security & lifecycle configurations
         self.assertTrue(op.cluster_config["gce_cluster_config"]["internal_ip_only"])
-        self.assertEqual(op.cluster_config["lifecycle_config"]["idle_delete_ttl"], "3600s")
+        self.assertEqual(
+            op.cluster_config["lifecycle_config"]["idle_delete_ttl"], "3600s"
+        )
 
     def test_create_cluster_operator_execution(self):
         """Verifies operator execute method logs audit summary and succeeds."""

@@ -34,6 +34,30 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: "ruff lint and format checks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.11'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@4db96194c378173c656ce18a155ffc14a9fc4355 # v5.2.2
+
+      - name: Check formatting with ruff
+        run: |
+          uvx ruff format --check plugin_operators
+
+      - name: Lint with ruff
+        run: |
+          uvx ruff check plugin_operators
+
   verify-dag-governance:
     name: Verify DAG Governance & Integrity
     runs-on: ubuntu-latest

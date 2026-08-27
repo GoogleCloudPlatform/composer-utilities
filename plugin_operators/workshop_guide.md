@@ -233,7 +233,7 @@ exceptions.policy_violations.MandatoryLabelMissingException:
 Restore the cost center back to `"cc-10492"` in `sample_secure_dataproc_dag.py`:
 
 ```python
-        cost_center="cc-10492",
+cost_center = "cc-10492"
 ```
 
 Re-run the tests:

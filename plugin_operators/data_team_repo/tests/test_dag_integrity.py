@@ -35,12 +35,14 @@ class TestDataTeamDAGIntegrity(unittest.TestCase):
         dag_file = os.path.join(DAGS_DIR, "sample_secure_dataproc_dag.py")
         self.assertTrue(os.path.exists(dag_file), f"File {dag_file} does not exist")
 
-        spec = importlib.util.spec_from_file_location("sample_secure_dataproc_dag", dag_file)
+        spec = importlib.util.spec_from_file_location(
+            "sample_secure_dataproc_dag", dag_file
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
         self.assertTrue(hasattr(module, "dag"))
-        dag_obj = getattr(module, "dag")
+        dag_obj = module.dag
         self.assertEqual(dag_obj.dag_id, "sample_secure_dataproc_etl_pipeline")
 
     def test_sample_guardrail_violation_dag_import(self):
@@ -48,18 +50,22 @@ class TestDataTeamDAGIntegrity(unittest.TestCase):
         dag_file = os.path.join(DAGS_DIR, "sample_guardrail_violation_dag.py")
         self.assertTrue(os.path.exists(dag_file), f"File {dag_file} does not exist")
 
-        spec = importlib.util.spec_from_file_location("sample_guardrail_violation_dag", dag_file)
+        spec = importlib.util.spec_from_file_location(
+            "sample_guardrail_violation_dag", dag_file
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
         self.assertTrue(hasattr(module, "dag"))
-        dag_obj = getattr(module, "dag")
+        dag_obj = module.dag
         self.assertEqual(dag_obj.dag_id, "sample_dataproc_guardrail_enforcement_demo")
 
     def test_guardrail_violation_functions_execute(self):
         """Executes the test callable functions in sample_guardrail_violation_dag to verify guardrails."""
         dag_file = os.path.join(DAGS_DIR, "sample_guardrail_violation_dag.py")
-        spec = importlib.util.spec_from_file_location("sample_guardrail_violation_dag", dag_file)
+        spec = importlib.util.spec_from_file_location(
+            "sample_guardrail_violation_dag", dag_file
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 

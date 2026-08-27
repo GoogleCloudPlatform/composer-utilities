@@ -57,12 +57,12 @@ except ImportError:
         )
 
 __all__ = [
+    "DEFAULT_PLATFORM_RULES",
+    "ClusterConfigBuilder",
+    "ClusterTier",
     "DataprocGovernancePlugin",
+    "PlatformGovernanceRules",
     "SecureDataprocCreateClusterOperator",
     "SecureDataprocDeleteClusterOperator",
     "SecureDataprocSubmitJobOperator",
-    "ClusterTier",
-    "ClusterConfigBuilder",
-    "PlatformGovernanceRules",
-    "DEFAULT_PLATFORM_RULES",
 ]

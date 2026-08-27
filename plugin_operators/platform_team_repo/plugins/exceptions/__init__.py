@@ -45,9 +45,9 @@ except ImportError:
 
 __all__ = [
     "DataprocPolicyViolationException",
-    "SecurityPolicyViolationException",
-    "ResourceQuotaExceededException",
-    "MandatoryLabelMissingException",
     "LifecyclePolicyViolationException",
+    "MandatoryLabelMissingException",
     "NetworkPolicyViolationException",
+    "ResourceQuotaExceededException",
+    "SecurityPolicyViolationException",
 ]

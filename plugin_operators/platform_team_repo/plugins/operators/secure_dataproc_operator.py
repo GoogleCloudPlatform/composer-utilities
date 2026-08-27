@@ -16,7 +16,8 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 # Handle imports whether executing inside Airflow or in standalone/test environments
 try:
@@ -26,6 +27,7 @@ try:
         DataprocDeleteClusterOperator,
     )
     from airflow.utils.trigger_rule import TriggerRule
+
     AIRFLOW_AVAILABLE = True
 except ImportError:
     AIRFLOW_AVAILABLE = False
@@ -37,8 +39,8 @@ except ImportError:
 
         def __init__(self, task_id: str = "task", **kwargs: Any) -> None:
             self.task_id = task_id
-            self.upstream_list: List[Any] = []
-            self.downstream_list: List[Any] = []
+            self.upstream_list: list[Any] = []
+            self.downstream_list: list[Any] = []
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
@@ -64,11 +66,11 @@ except ImportError:
         def __init__(
             self,
             *,
-            project_id: Optional[str] = None,
-            region: Optional[str] = None,
-            cluster_name: Optional[str] = None,
-            cluster_config: Optional[Dict[str, Any]] = None,
-            labels: Optional[Dict[str, str]] = None,
+            project_id: str | None = None,
+            region: str | None = None,
+            cluster_name: str | None = None,
+            cluster_config: dict[str, Any] | None = None,
+            labels: dict[str, str] | None = None,
             **kwargs: Any,
         ) -> None:
             super().__init__(**kwargs)
@@ -88,9 +90,9 @@ except ImportError:
         def __init__(
             self,
             *,
-            project_id: Optional[str] = None,
-            region: Optional[str] = None,
-            cluster_name: Optional[str] = None,
+            project_id: str | None = None,
+            region: str | None = None,
+            cluster_name: str | None = None,
             **kwargs: Any,
         ) -> None:
             super().__init__(**kwargs)
@@ -110,7 +112,6 @@ try:
     from config.cluster_tiers import (
         ClusterConfigBuilder,
         ClusterTier,
-        TIER_DEFINITIONS,
     )
     from config.governance_rules import (
         DEFAULT_PLATFORM_RULES,
@@ -128,7 +129,6 @@ except ImportError:
         from plugins.config.cluster_tiers import (
             ClusterConfigBuilder,
             ClusterTier,
-            TIER_DEFINITIONS,
         )
         from plugins.config.governance_rules import (
             DEFAULT_PLATFORM_RULES,
@@ -145,7 +145,6 @@ except ImportError:
         from ..config.cluster_tiers import (
             ClusterConfigBuilder,
             ClusterTier,
-            TIER_DEFINITIONS,
         )
         from ..config.governance_rules import (
             DEFAULT_PLATFORM_RULES,
@@ -197,19 +196,19 @@ class SecureDataprocCreateClusterOperator(DataprocCreateClusterOperator):
         cost_center: str,
         environment: str = "dev",
         data_classification: str = "internal",
-        tier: Union[ClusterTier, str] = ClusterTier.STANDARD_ANALYTICS,
-        owner: Optional[str] = None,
-        subnetwork: Optional[str] = None,
-        service_account: Optional[str] = None,
-        idle_delete_ttl_minutes: Optional[int] = None,
-        auto_delete_ttl_hours: Optional[int] = None,
-        cmek_kms_key: Optional[str] = None,
-        image_version: Optional[str] = None,
-        optional_components: Optional[List[str]] = None,
-        spark_properties: Optional[Dict[str, str]] = None,
-        cluster_config: Optional[Dict[str, Any]] = None,
-        labels: Optional[Dict[str, str]] = None,
-        governance_rules: Optional[PlatformGovernanceRules] = None,
+        tier: ClusterTier | str = ClusterTier.STANDARD_ANALYTICS,
+        owner: str | None = None,
+        subnetwork: str | None = None,
+        service_account: str | None = None,
+        idle_delete_ttl_minutes: int | None = None,
+        auto_delete_ttl_hours: int | None = None,
+        cmek_kms_key: str | None = None,
+        image_version: str | None = None,
+        optional_components: list[str] | None = None,
+        spark_properties: dict[str, str] | None = None,
+        cluster_config: dict[str, Any] | None = None,
+        labels: dict[str, str] | None = None,
+        governance_rules: PlatformGovernanceRules | None = None,
         **kwargs: Any,
     ) -> None:
         self.rules = governance_rules or DEFAULT_PLATFORM_RULES
@@ -218,7 +217,9 @@ class SecureDataprocCreateClusterOperator(DataprocCreateClusterOperator):
         self.team = team
         self.cost_center = cost_center
         self.environment = environment.lower() if environment else "dev"
-        self.data_classification = data_classification.lower() if data_classification else "internal"
+        self.data_classification = (
+            data_classification.lower() if data_classification else "internal"
+        )
         self.owner = owner
         self.cmek_kms_key = cmek_kms_key
 
@@ -266,7 +267,9 @@ class SecureDataprocCreateClusterOperator(DataprocCreateClusterOperator):
     # Validation & Policy Enforcement Logic
     # --------------------------------------------------------------------------
 
-    def _validate_and_assemble_labels(self, user_labels: Dict[str, str]) -> Dict[str, str]:
+    def _validate_and_assemble_labels(
+        self, user_labels: dict[str, str]
+    ) -> dict[str, str]:
         """Validates mandatory labels and formats labels according to GCP standards."""
         # Check required fields
         if not self.team:
@@ -310,13 +313,15 @@ class SecureDataprocCreateClusterOperator(DataprocCreateClusterOperator):
             )
 
         # Assemble sanitized labels
-        sanitized: Dict[str, str] = {}
+        sanitized: dict[str, str] = {}
 
         # 1. Mandatory governance labels
         sanitized["team"] = self._sanitize_label_value(self.team)
         sanitized["cost_center"] = self._sanitize_label_value(self.cost_center)
         sanitized["environment"] = self._sanitize_label_value(self.environment)
-        sanitized["data_classification"] = self._sanitize_label_value(self.data_classification)
+        sanitized["data_classification"] = self._sanitize_label_value(
+            self.data_classification
+        )
         sanitized["cluster_tier"] = self._sanitize_label_value(self.tier.value)
 
         if self.owner:
@@ -348,19 +353,32 @@ class SecureDataprocCreateClusterOperator(DataprocCreateClusterOperator):
         cleaned = re.sub(r"[^a-z0-9_-]", "-", val.lower())
         return cleaned[:63]
 
-    def _apply_platform_defaults(self, config: Dict[str, Any], project_id: str, region: str) -> None:
+    def _apply_platform_defaults(
+        self, config: dict[str, Any], project_id: str, region: str
+    ) -> None:
         """Applies automated platform policy defaults like CMEK injection when configured."""
         if self.cmek_kms_key:
             config["encryption_config"] = {"gce_pd_kms_key_name": self.cmek_kms_key}
-        elif self.environment in self.rules.environments_requiring_cmek and self.rules.default_cmek_key_template:
-            if "encryption_config" not in config or not config["encryption_config"].get("gce_pd_kms_key_name"):
-                default_cmek = self.rules.default_cmek_key_template.format(
-                    project_id=project_id, region=region
-                )
-                config["encryption_config"] = {"gce_pd_kms_key_name": default_cmek}
-                logger.info("Automatically injected production CMEK encryption key: %s", default_cmek)
+        elif (
+            self.environment in self.rules.environments_requiring_cmek
+            and self.rules.default_cmek_key_template
+            and (
+                "encryption_config" not in config
+                or not config["encryption_config"].get("gce_pd_kms_key_name")
+            )
+        ):
+            default_cmek = self.rules.default_cmek_key_template.format(
+                project_id=project_id, region=region
+            )
+            config["encryption_config"] = {"gce_pd_kms_key_name": default_cmek}
+            logger.info(
+                "Automatically injected production CMEK encryption key: %s",
+                default_cmek,
+            )
 
-    def _enforce_platform_guardrails(self, config: Dict[str, Any], labels: Dict[str, str]) -> None:
+    def _enforce_platform_guardrails(
+        self, config: dict[str, Any], labels: dict[str, str]
+    ) -> None:
         """Strictly validates the finalized configuration against platform security and quota rules."""
         gce_config = config.get("gce_cluster_config", {})
 
