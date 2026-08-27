@@ -14,20 +14,27 @@
 
 """Unit tests for Composer Cluster Policy (airflow_local_settings)."""
 
-from datetime import timedelta
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock
+from datetime import timedelta
+from unittest.mock import patch
 
 # Ensure the module can be imported
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import airflow_local_settings as policy
+try:
+    from composer_cluster_policy import policies as policy
+except ImportError:
+    import airflow_local_settings as policy
 
 
 class MockObject:
     """Helper class for creating mock objects with dynamic attributes."""
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -92,7 +99,9 @@ class TestPodMutationHook(unittest.TestCase):
 
         self.assertIsNotNone(container_no_resources.resources)
         resources = container_no_resources.resources
-        requests = resources["requests"] if isinstance(resources, dict) else resources.requests
+        requests = (
+            resources["requests"] if isinstance(resources, dict) else resources.requests
+        )
         self.assertEqual(requests["cpu"], "500m")
         self.assertEqual(requests["memory"], "1024Mi")
 
@@ -117,6 +126,7 @@ class TestPodMutationHook(unittest.TestCase):
 
     def test_handles_k8s_model_objects_without_type_error(self):
         """Verify object-based resource definitions are clamped and updated safely without TypeError."""
+
         class ResourceSpec:
             def __init__(self, cpu, memory):
                 self.cpu = cpu
@@ -146,6 +156,14 @@ class TestPodMutationHook(unittest.TestCase):
         self.assertEqual(container_obj.resources.limits.cpu, "4000m")
         self.assertEqual(container_obj.resources.limits.memory, "8192Mi")
 
+    def test_injects_metadata_delay_init_container(self):
+        """Verify Solution 1: custom-init-setup init container is injected to delay for GKE metadata server."""
+        with patch.object(policy, "ENABLE_INIT_CONTAINER_DELAY", True):
+            policy.pod_mutation_hook(self.pod)
+            self.assertIsNotNone(self.pod.spec.init_containers)
+            names = [getattr(c, "name", "") for c in self.pod.spec.init_containers]
+            self.assertIn("custom-init-setup", names)
+
     def test_injects_governance_labels(self):
         """Verify standard corporate/governance labels are attached."""
         policy.pod_mutation_hook(self.pod)
@@ -174,8 +192,24 @@ class TestTaskPolicy(unittest.TestCase):
         policy.task_policy(task)
         self.assertEqual(task.execution_timeout, timedelta(hours=4))
 
+    def test_enforces_kpo_retries_and_backoff(self):
+        """Verify Solution 2: KPO tasks receive minimum retries and backoff for metadata server resilience."""
+        kpo_task = MockObject(
+            task_id="gcloud_ls",
+            execution_timeout=timedelta(hours=1),
+            retries=0,
+            retry_delay=timedelta(seconds=0),
+        )
+        kpo_task.__class__.__name__ = "KubernetesPodOperator"
+        policy.task_policy(kpo_task)
+        self.assertEqual(kpo_task.retries, 2)
+        self.assertEqual(kpo_task.retry_delay, timedelta(seconds=10))
+        self.assertTrue(getattr(kpo_task, "retry_exponential_backoff", False))
+
     def test_clamps_excessive_retries(self):
-        task = MockObject(task_id="test_task", execution_timeout=timedelta(minutes=30), retries=10)
+        task = MockObject(
+            task_id="test_task", execution_timeout=timedelta(minutes=30), retries=10
+        )
         policy.task_policy(task)
         self.assertEqual(task.retries, 3)
 
@@ -186,10 +220,47 @@ class TestDagPolicy(unittest.TestCase):
     def test_dag_policy_runs_cleanly(self):
         dag = MockObject(
             dag_id="test_dag",
+            catchup=False,
             tags=["domain:data"],
             default_args={"owner": "data-team"},
         )
-        # Should execute without errors
+        policy.dag_policy(dag)
+
+    def test_dag_policy_rejects_catchup(self):
+        """Verify dag_policy raises AirflowClusterPolicyViolation when catchup=True."""
+        dag = MockObject(
+            dag_id="bad_dag",
+            catchup=True,
+            tags=["domain:data"],
+            default_args={"owner": "data-team"},
+        )
+        with self.assertRaises(policy.AirflowClusterPolicyViolation):
+            policy.dag_policy(dag)
+
+    def test_dag_policy_clamps_concurrency_and_timeout(self):
+        """Verify dag_policy clamps max_active_runs and injects dagrun_timeout."""
+        dag = MockObject(
+            dag_id="unconstrained_dag",
+            catchup=False,
+            max_active_runs=16,
+            dagrun_timeout=None,
+            tags=[],
+            default_args={"owner": "data-team"},
+        )
+        policy.dag_policy(dag)
+        self.assertEqual(dag.max_active_runs, 2)
+        self.assertEqual(dag.dagrun_timeout, timedelta(hours=4))
+        self.assertIn("policy:remediated", dag.tags)
+
+    def test_dag_policy_exempts_airflow_monitoring(self):
+        """Verify dag_policy safely ignores internal Cloud Composer monitoring DAGs."""
+        dag = MockObject(
+            dag_id="airflow_monitoring",
+            catchup=True,
+            default_args={"owner": "None"},
+            tags=[],
+        )
+        # Should not raise any AirflowClusterPolicyViolation
         policy.dag_policy(dag)
 
 

@@ -56,6 +56,15 @@ except ImportError:
         pass
 
 
+try:
+    from airflow.policies import hookimpl
+except ImportError:
+
+    def hookimpl(f):
+        """Fallback hookimpl decorator when airflow is not installed."""
+        return f
+
+
 # Configure logger
 logger = logging.getLogger("airflow.cluster_policy")
 
@@ -189,6 +198,7 @@ def parse_memory_to_mib(mem_val: str | int | float | None) -> float | None:
 # ==============================================================================
 
 
+@hookimpl
 def pod_mutation_hook(pod: Any) -> None:
     """Mutates Kubernetes Pods created by KubernetesPodOperator or GKEStartPodOperator.
 
@@ -483,6 +493,7 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
 # ==============================================================================
 
 
+@hookimpl
 def task_policy(task: Any) -> None:
     """Enforces task-level operational standards across all operators.
 
@@ -491,7 +502,14 @@ def task_policy(task: Any) -> None:
     3. Caps excessive retries across standard operators.
     """
     task_id = getattr(task, "task_id", "unknown")
+    dag_id = getattr(task, "dag_id", "")
     task_type = task.__class__.__name__
+
+    # 0. Platform Exemption Guard: Skip internal Cloud Composer monitoring tasks
+    if dag_id == "airflow_monitoring" or str(dag_id).startswith(
+        ("airflow_monitoring", "composer_sample")
+    ):
+        return
 
     # 1. Enforce execution timeout
     if getattr(task, "execution_timeout", None) is None:
@@ -627,9 +645,16 @@ def task_policy(task: Any) -> None:
 # ==============================================================================
 
 
+@hookimpl
 def dag_policy(dag: Any) -> None:
     """Enforces metadata, concurrency, and gatekeeping governance on DAGs."""
     dag_id = getattr(dag, "dag_id", "unknown")
+
+    # 0. Platform Exemption Guard: Skip internal Cloud Composer monitoring and sample DAGs
+    if dag_id == "airflow_monitoring" or str(dag_id).startswith(
+        ("airflow_monitoring", "composer_sample")
+    ):
+        return
 
     # 1. Hard Gatekeeper: Catchup Flood Protection
     # Mutating catchup in memory does not recalculate the timetable;
