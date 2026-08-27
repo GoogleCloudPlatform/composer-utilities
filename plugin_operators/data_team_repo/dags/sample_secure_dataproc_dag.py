@@ -21,11 +21,8 @@ Demonstrates the business value of Platform Plugin Operators:
   4. Reliable Teardown: Governed delete operator guarantees cleanup with trigger_rule='all_done'.
 """
 
-from datetime import datetime, timedelta
 import os
-import sys
-
-
+from datetime import datetime, timedelta, timezone
 
 try:
     from airflow import DAG
@@ -38,33 +35,40 @@ except ImportError:
             self.tasks = []
             for k, v in kwargs.items():
                 setattr(self, k, v)
+
         def __enter__(self):
             return self
+
         def __exit__(self, *args):
             pass
 
     class EmptyOperator:
         def __init__(self, task_id, **kwargs):
             self.task_id = task_id
+
         def __rshift__(self, other):
             return other
+
         def __lshift__(self, other):
             return self
 
+
 try:
+    from operators.dataproc_job_operator import SecureDataprocSubmitJobOperator
     from operators.secure_dataproc_operator import (
         ClusterTier,
         SecureDataprocCreateClusterOperator,
         SecureDataprocDeleteClusterOperator,
     )
-    from operators.dataproc_job_operator import SecureDataprocSubmitJobOperator
 except ImportError:
+    from plugins.operators.dataproc_job_operator import (
+        SecureDataprocSubmitJobOperator,
+    )
     from plugins.operators.secure_dataproc_operator import (
         ClusterTier,
         SecureDataprocCreateClusterOperator,
         SecureDataprocDeleteClusterOperator,
     )
-    from plugins.operators.dataproc_job_operator import SecureDataprocSubmitJobOperator
 
 # ------------------------------------------------------------------------------
 # DAG Configuration
@@ -116,11 +120,10 @@ with DAG(
     default_args=default_args,
     description="Enterprise Governed Dataproc ETL Pipeline in Managed Service for Apache Airflow",
     schedule=None,
-    start_date=datetime(2026, 1, 1),
+    start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
     catchup=False,
     tags=["dataproc", "platform_governed", "marketing_analytics", "etl"],
 ) as dag:
-
     start_pipeline = EmptyOperator(task_id="start_pipeline")
 
     # 1. Platform-Governed Dataproc Cluster Creation
@@ -137,7 +140,7 @@ with DAG(
         environment="production",
         data_classification="confidential",
         idle_delete_ttl_minutes=60,  # Auto-terminate if idle for 60 minutes
-        auto_delete_ttl_hours=8,     # Max absolute lifetime of 8 hours
+        auto_delete_ttl_hours=8,  # Max absolute lifetime of 8 hours
         optional_components=["JUPYTER"],
     )
 
@@ -165,4 +168,10 @@ with DAG(
     end_pipeline = EmptyOperator(task_id="end_pipeline")
 
     # Task Dependencies
-    start_pipeline >> create_dataproc_cluster >> run_pyspark_transformation >> delete_dataproc_cluster >> end_pipeline
+    (
+        start_pipeline
+        >> create_dataproc_cluster
+        >> run_pyspark_transformation
+        >> delete_dataproc_cluster
+        >> end_pipeline
+    )

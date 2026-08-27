@@ -24,25 +24,25 @@ Demonstrated Guardrails:
   4. Lifecycle Violation: Attempting to set 24-hour idle timeout exceeding platform limit
 """
 
-from datetime import datetime, timedelta
 import logging
 import os
-import sys
-
-
+from datetime import datetime, timezone
 
 try:
     from airflow import DAG
     from airflow.operators.python import PythonOperator
 except ImportError:
+
     class DAG:
         def __init__(self, dag_id, **kwargs):
             self.dag_id = dag_id
             self.tasks = []
             for k, v in kwargs.items():
                 setattr(self, k, v)
+
         def __enter__(self):
             return self
+
         def __exit__(self, *args):
             pass
 
@@ -50,31 +50,30 @@ except ImportError:
         def __init__(self, task_id, python_callable, **kwargs):
             self.task_id = task_id
             self.python_callable = python_callable
+
         def __rshift__(self, other):
             return other
+
         def __lshift__(self, other):
             return self
 
+
 try:
     from exceptions.policy_violations import (
-        DataprocPolicyViolationException,
         MandatoryLabelMissingException,
         ResourceQuotaExceededException,
         SecurityPolicyViolationException,
     )
     from operators.secure_dataproc_operator import (
-        ClusterTier,
         SecureDataprocCreateClusterOperator,
     )
 except ImportError:
     from plugins.exceptions.policy_violations import (
-        DataprocPolicyViolationException,
         MandatoryLabelMissingException,
         ResourceQuotaExceededException,
         SecurityPolicyViolationException,
     )
     from plugins.operators.secure_dataproc_operator import (
-        ClusterTier,
         SecureDataprocCreateClusterOperator,
     )
 
@@ -91,7 +90,9 @@ GCP_REGION = os.environ.get("GCP_REGION", "us-central1")
 
 def test_public_ip_interception():
     """Demonstrates how the operator blocks insecure public IP configurations."""
-    logger.info("--> Test 1: Simulating non-compliant cluster with internal_ip_only=False...")
+    logger.info(
+        "--> Test 1: Simulating non-compliant cluster with internal_ip_only=False..."
+    )
     try:
         SecureDataprocCreateClusterOperator(
             task_id="insecure_public_ip_cluster",
@@ -107,7 +108,9 @@ def test_public_ip_interception():
                 }
             },
         )
-        raise RuntimeError("FAIL: Operator should have blocked public IP configuration!")
+        raise RuntimeError(
+            "FAIL: Operator should have blocked public IP configuration!"
+        )
     except SecurityPolicyViolationException as e:
         logger.info("SUCCESS: Operator blocked public IP with message:\n%s", str(e))
 
@@ -127,12 +130,17 @@ def test_missing_finops_labels_interception():
         )
         raise RuntimeError("FAIL: Operator should have blocked missing cost_center!")
     except MandatoryLabelMissingException as e:
-        logger.info("SUCCESS: Operator blocked missing FinOps metadata with message:\n%s", str(e))
+        logger.info(
+            "SUCCESS: Operator blocked missing FinOps metadata with message:\n%s",
+            str(e),
+        )
 
 
 def test_oversized_quota_interception():
     """Demonstrates how the operator prevents runaway cloud spending by capping worker counts."""
-    logger.info("--> Test 3: Simulating cluster creation requesting 100 worker nodes...")
+    logger.info(
+        "--> Test 3: Simulating cluster creation requesting 100 worker nodes..."
+    )
     try:
         SecureDataprocCreateClusterOperator(
             task_id="oversized_cluster",
@@ -148,20 +156,24 @@ def test_oversized_quota_interception():
                 }
             },
         )
-        raise RuntimeError("FAIL: Operator should have blocked oversized cluster quota!")
+        raise RuntimeError(
+            "FAIL: Operator should have blocked oversized cluster quota!"
+        )
     except ResourceQuotaExceededException as e:
-        logger.info("SUCCESS: Operator blocked excessive worker count with message:\n%s", str(e))
+        logger.info(
+            "SUCCESS: Operator blocked excessive worker count with message:\n%s",
+            str(e),
+        )
 
 
 with DAG(
     dag_id="sample_dataproc_guardrail_enforcement_demo",
     schedule=None,  # Manual / Ad-hoc trigger for demonstration
-    start_date=datetime(2026, 1, 1),
+    start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
     catchup=False,
     tags=["dataproc", "platform_governance", "demo", "guardrails"],
     description="Demonstrates how platform plugin operators intercept security & quota violations",
 ) as dag:
-
     verify_public_ip_guardrail = PythonOperator(
         task_id="verify_public_ip_guardrail",
         python_callable=test_public_ip_interception,
@@ -177,4 +189,8 @@ with DAG(
         python_callable=test_oversized_quota_interception,
     )
 
-    verify_public_ip_guardrail >> verify_finops_label_guardrail >> verify_quota_guardrail
+    (
+        verify_public_ip_guardrail
+        >> verify_finops_label_guardrail
+        >> verify_quota_guardrail
+    )

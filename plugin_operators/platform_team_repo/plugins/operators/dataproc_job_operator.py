@@ -15,11 +15,15 @@
 """Standardized Dataproc Job Submission Operator enforcing metadata tracking and execution timeouts."""
 
 import logging
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 try:
     from airflow.models.baseoperator import BaseOperator
-    from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
+    from airflow.providers.google.cloud.operators.dataproc import (
+        DataprocSubmitJobOperator,
+    )
+
     AIRFLOW_AVAILABLE = True
 except ImportError:
     AIRFLOW_AVAILABLE = False
@@ -30,8 +34,8 @@ except ImportError:
 
         def __init__(self, task_id: str = "task", **kwargs: Any) -> None:
             self.task_id = task_id
-            self.upstream_list: List[Any] = []
-            self.downstream_list: List[Any] = []
+            self.upstream_list: list[Any] = []
+            self.downstream_list: list[Any] = []
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
@@ -51,9 +55,9 @@ except ImportError:
         def __init__(
             self,
             *,
-            project_id: Optional[str] = None,
-            region: Optional[str] = None,
-            job: Optional[Dict[str, Any]] = None,
+            project_id: str | None = None,
+            region: str | None = None,
+            job: dict[str, Any] | None = None,
             **kwargs: Any,
         ) -> None:
             super().__init__(**kwargs)
@@ -63,6 +67,7 @@ except ImportError:
 
         def execute(self, context: Any) -> Any:
             return {"job_id": "job_12345"}
+
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +88,9 @@ class SecureDataprocSubmitJobOperator(DataprocSubmitJobOperator):
         task_id: str,
         project_id: str,
         region: str,
-        job: Dict[str, Any],
-        cost_center: Optional[str] = None,
-        team: Optional[str] = None,
+        job: dict[str, Any],
+        cost_center: str | None = None,
+        team: str | None = None,
         **kwargs: Any,
     ) -> None:
         self.cost_center = cost_center

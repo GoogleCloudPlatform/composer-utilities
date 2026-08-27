@@ -76,19 +76,33 @@ class DashboardTestResult(unittest.TestResult):
         elapsed = time.perf_counter() - self._current_test_start
         test_id = test.id().split(".")[-1]
         doc = test.shortDescription() or test_id
-        self.test_records.append((test_id, doc, "FAIL", elapsed, self._exc_info_to_string(err, test)))
+        self.test_records.append(
+            (test_id, doc, "FAIL", elapsed, self._exc_info_to_string(err, test))
+        )
 
     def addError(self, test, err):
         super().addError(test, err)
         elapsed = time.perf_counter() - self._current_test_start
         test_id = test.id().split(".")[-1]
         doc = test.shortDescription() or test_id
-        self.test_records.append((test_id, doc, "ERROR", elapsed, self._exc_info_to_string(err, test)))
+        self.test_records.append(
+            (test_id, doc, "ERROR", elapsed, self._exc_info_to_string(err, test))
+        )
 
 
-def run_suite_category(name: str, icon: str, loader: unittest.TestLoader, start_dir: str, pattern: str = "test_*.py", top_level_dir: str = None, use_color: bool = True):
+def run_suite_category(
+    name: str,
+    icon: str,
+    loader: unittest.TestLoader,
+    start_dir: str,
+    pattern: str = "test_*.py",
+    top_level_dir: str | None = None,
+    use_color: bool = True,
+):
     """Discovers and executes a specific test suite category."""
-    suite = loader.discover(start_dir=start_dir, pattern=pattern, top_level_dir=top_level_dir or start_dir)
+    suite = loader.discover(
+        start_dir=start_dir, pattern=pattern, top_level_dir=top_level_dir or start_dir
+    )
     result = DashboardTestResult(name, use_color=use_color)
     result.start_time = time.perf_counter()
     suite.run(result)
@@ -97,11 +111,30 @@ def run_suite_category(name: str, icon: str, loader: unittest.TestLoader, start_
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Airflow Governance Workshop Test Dashboard")
-    parser.add_argument("--scope", choices=["all", "platform", "data"], default="all", help="Scope of tests to execute")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Display individual test method names")
-    parser.add_argument("-b", "--show-banners", action="store_true", help="Display actionable error box banners during tests")
-    parser.add_argument("--no-color", action="store_true", help="Disable colored output")
+    parser = argparse.ArgumentParser(
+        description="Airflow Governance Workshop Test Dashboard"
+    )
+    parser.add_argument(
+        "--scope",
+        choices=["all", "platform", "data"],
+        default="all",
+        help="Scope of tests to execute",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Display individual test method names",
+    )
+    parser.add_argument(
+        "-b",
+        "--show-banners",
+        action="store_true",
+        help="Display actionable error box banners during tests",
+    )
+    parser.add_argument(
+        "--no-color", action="store_true", help="Disable colored output"
+    )
     args = parser.parse_args()
 
     use_color = not args.no_color and sys.stdout.isatty()
@@ -124,9 +157,21 @@ def main():
 
     print()
     print(colorize("=" * 82, CYAN + BOLD, use_color))
-    print(colorize("🧪  APACHE AIRFLOW ENTERPRISE GOVERNANCE TEST DASHBOARD", WHITE + BOLD, use_color))
+    print(
+        colorize(
+            "🧪  APACHE AIRFLOW ENTERPRISE GOVERNANCE TEST DASHBOARD",
+            WHITE + BOLD,
+            use_color,
+        )
+    )
     print(colorize("=" * 82, CYAN + BOLD, use_color))
-    print(colorize(f"📍 Execution Mode: Scope={args.scope.upper()} | Zero Cloud Latency Mode (< 0.01s)", DIM, use_color))
+    print(
+        colorize(
+            f"📍 Execution Mode: Scope={args.scope.upper()} | Zero Cloud Latency Mode (< 0.01s)",
+            DIM,
+            use_color,
+        )
+    )
     print()
 
     total_start = time.perf_counter()
@@ -135,51 +180,127 @@ def main():
 
     # 1. Platform Suite
     if args.scope in ("all", "platform"):
-        print(colorize("🏛️  PLATFORM ENGINEERING DOMAIN (platform_team_repo):", BLUE + BOLD, use_color))
+        print(
+            colorize(
+                "🏛️  PLATFORM ENGINEERING DOMAIN (platform_team_repo):",
+                BLUE + BOLD,
+                use_color,
+            )
+        )
         categories = [
-            ("Cluster Sizing Tiers", "📐", os.path.join(platform_dir, "tests"), "test_cluster_tiers.py"),
-            ("Guardrails & Policies", "🛡️", os.path.join(platform_dir, "tests"), "test_guardrail_enforcement.py"),
-            ("Operator Lifecycle", "⚡", os.path.join(platform_dir, "tests"), "test_secure_dataproc_operator.py"),
+            (
+                "Cluster Sizing Tiers",
+                "📐",
+                os.path.join(platform_dir, "tests"),
+                "test_cluster_tiers.py",
+            ),
+            (
+                "Guardrails & Policies",
+                "🛡️",
+                os.path.join(platform_dir, "tests"),
+                "test_guardrail_enforcement.py",
+            ),
+            (
+                "Operator Lifecycle",
+                "⚡",
+                os.path.join(platform_dir, "tests"),
+                "test_secure_dataproc_operator.py",
+            ),
         ]
         if args.scope == "platform":
-            categories.append(("DAG Compliance & Interception", "🔒", os.path.join(platform_dir, "tests"), "test_dag_compliance.py"))
+            categories.append(
+                (
+                    "DAG Compliance & Interception",
+                    "🔒",
+                    os.path.join(platform_dir, "tests"),
+                    "test_dag_compliance.py",
+                )
+            )
 
         for title, icon, path, pattern in categories:
-            res = run_suite_category(title, icon, loader, path, pattern, use_color=use_color)
+            res = run_suite_category(
+                title, icon, loader, path, pattern, use_color=use_color
+            )
             suites_results.append(res)
             duration = res.end_time - res.start_time
             passed = len(res.test_records) - len(res.failures) - len(res.errors)
             total = len(res.test_records)
-            status_text = colorize("PASS", GREEN + BOLD, use_color) if not (res.failures or res.errors) else colorize("FAIL", RED + BOLD, use_color)
-            icon_status = colorize("✔", GREEN, use_color) if not (res.failures or res.errors) else colorize("✖", RED, use_color)
-            print(f"   {icon_status}  {title:<28} ({passed}/{total} tests)    [{duration:.4f}s]  --> {status_text}")
-            
+            status_text = (
+                colorize("PASS", GREEN + BOLD, use_color)
+                if not (res.failures or res.errors)
+                else colorize("FAIL", RED + BOLD, use_color)
+            )
+            icon_status = (
+                colorize("✔", GREEN, use_color)
+                if not (res.failures or res.errors)
+                else colorize("✖", RED, use_color)
+            )
+            print(
+                f"   {icon_status}  {title:<28} ({passed}/{total} tests)    [{duration:.4f}s]  --> {status_text}"
+            )
+
             if args.verbose:
                 for tid, doc, st, el, _ in res.test_records:
-                    st_col = colorize("✔", GREEN, use_color) if st == "PASS" else colorize("✖", RED, use_color)
+                    st_col = (
+                        colorize("✔", GREEN, use_color)
+                        if st == "PASS"
+                        else colorize("✖", RED, use_color)
+                    )
                     print(f"      {st_col} {tid:<52} [{el:.4f}s]")
         print()
 
     # 2. Data Team Suite
     if args.scope in ("all", "data"):
-        print(colorize("💼  DATA ENGINEERING PIPELINES (data_team_repo):", MAGENTA + BOLD, use_color))
+        print(
+            colorize(
+                "💼  DATA ENGINEERING PIPELINES (data_team_repo):",
+                MAGENTA + BOLD,
+                use_color,
+            )
+        )
         data_categories = [
-            ("DAG Parsing & Integrity", "📄", os.path.join(data_dir, "tests"), "test_dag_integrity.py"),
-            ("Platform Policy Compliance", "🔒", os.path.join(platform_dir, "tests"), "test_dag_compliance.py"),
+            (
+                "DAG Parsing & Integrity",
+                "📄",
+                os.path.join(data_dir, "tests"),
+                "test_dag_integrity.py",
+            ),
+            (
+                "Platform Policy Compliance",
+                "🔒",
+                os.path.join(platform_dir, "tests"),
+                "test_dag_compliance.py",
+            ),
         ]
         for title, icon, path, pattern in data_categories:
-            res = run_suite_category(title, icon, loader, path, pattern, use_color=use_color)
+            res = run_suite_category(
+                title, icon, loader, path, pattern, use_color=use_color
+            )
             suites_results.append(res)
             duration = res.end_time - res.start_time
             passed = len(res.test_records) - len(res.failures) - len(res.errors)
             total = len(res.test_records)
-            status_text = colorize("PASS", GREEN + BOLD, use_color) if not (res.failures or res.errors) else colorize("FAIL", RED + BOLD, use_color)
-            icon_status = colorize("✔", GREEN, use_color) if not (res.failures or res.errors) else colorize("✖", RED, use_color)
-            print(f"   {icon_status}  {title:<28} ({passed}/{total} tests)    [{duration:.4f}s]  --> {status_text}")
+            status_text = (
+                colorize("PASS", GREEN + BOLD, use_color)
+                if not (res.failures or res.errors)
+                else colorize("FAIL", RED + BOLD, use_color)
+            )
+            icon_status = (
+                colorize("✔", GREEN, use_color)
+                if not (res.failures or res.errors)
+                else colorize("✖", RED, use_color)
+            )
+            print(
+                f"   {icon_status}  {title:<28} ({passed}/{total} tests)    [{duration:.4f}s]  --> {status_text}"
+            )
 
             if args.verbose:
                 for tid, doc, st, el, _ in res.test_records:
-                    st_col = colorize("✔", GREEN, use_color) if st == "PASS" else colorize("✖", RED, use_color)
+                    st_col = (
+                        colorize("✔", GREEN, use_color)
+                        if st == "PASS"
+                        else colorize("✖", RED, use_color)
+                    )
                     print(f"      {st_col} {tid:<52} [{el:.4f}s]")
         print()
 
@@ -187,7 +308,6 @@ def main():
     all_tests = sum(len(r.test_records) for r in suites_results)
     all_fails = sum(len(r.failures) for r in suites_results)
     all_errors = sum(len(r.errors) for r in suites_results)
-    all_passed = all_tests - all_fails - all_errors
 
     print(colorize("-" * 82, DIM, use_color))
     if all_fails == 0 and all_errors == 0:
@@ -200,7 +320,9 @@ def main():
         # Print failures in detail
         for r in suites_results:
             for t, err in r.failures + r.errors:
-                print(colorize(f"\n[FAILURE DETAILS - {t.id()}]:", RED + BOLD, use_color))
+                print(
+                    colorize(f"\n[FAILURE DETAILS - {t.id()}]:", RED + BOLD, use_color)
+                )
                 print(err)
 
     print(colorize("=" * 82, CYAN + BOLD, use_color))

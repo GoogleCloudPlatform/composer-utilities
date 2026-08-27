@@ -15,8 +15,6 @@
 """Platform governance rules and policy definitions for Google Cloud Dataproc."""
 
 from dataclasses import dataclass, field
-import re
-from typing import Dict, List, Optional
 
 
 @dataclass
@@ -34,10 +32,10 @@ class PlatformGovernanceRules:
     max_secondary_workers: int = 20
     max_master_nodes: int = 3
     max_boot_disk_size_gb: int = 500
-    disallowed_machine_type_prefixes: List[str] = field(
+    disallowed_machine_type_prefixes: list[str] = field(
         default_factory=lambda: ["a2-", "g2-", "m1-", "m2-", "m3-"]
     )
-    allowed_machine_type_families: List[str] = field(
+    allowed_machine_type_families: list[str] = field(
         default_factory=lambda: ["e2-", "n2-", "n2d-", "n1-", "c2-", "c2d-"]
     )
 
@@ -46,29 +44,29 @@ class PlatformGovernanceRules:
     # --------------------------------------------------------------------------
     require_internal_ip_only: bool = True
     enforce_component_gateway: bool = True
-    allowed_subnetwork_regex: str = r"^projects/[a-z0-9-]+/regions/[a-z0-9-]+/subnetworks/[a-z0-9-]+$"
+    allowed_subnetwork_regex: str = (
+        r"^projects/[a-z0-9-]+/regions/[a-z0-9-]+/subnetworks/[a-z0-9-]+$"
+    )
     default_subnetwork_template: str = (
         "projects/{project_id}/regions/{region}/subnetworks/default"
     )
-    default_service_account_template: Optional[str] = None
-    disallowed_service_account_patterns: List[str] = field(
+    default_service_account_template: str | None = None
+    disallowed_service_account_patterns: list[str] = field(
         default_factory=lambda: [
             r".*-compute@developer\.gserviceaccount\.com$",
             r".*@appspot\.gserviceaccount\.com$",
         ]
     )
-    mandatory_network_tags: List[str] = field(
+    mandatory_network_tags: list[str] = field(
         default_factory=lambda: ["dataproc-managed-node", "vpc-analytics-egress"]
     )
-    environments_requiring_cmek: List[str] = field(
-        default_factory=lambda: []
-    )
-    default_cmek_key_template: Optional[str] = None
+    environments_requiring_cmek: list[str] = field(default_factory=list)
+    default_cmek_key_template: str | None = None
 
     # --------------------------------------------------------------------------
     # 3. FinOps & Mandatory Metadata Labels
     # --------------------------------------------------------------------------
-    mandatory_labels: List[str] = field(
+    mandatory_labels: list[str] = field(
         default_factory=lambda: [
             "cost_center",
             "team",
@@ -76,7 +74,7 @@ class PlatformGovernanceRules:
             "data_classification",
         ]
     )
-    allowed_environments: List[str] = field(
+    allowed_environments: list[str] = field(
         default_factory=lambda: [
             "dev",
             "development",
@@ -87,7 +85,7 @@ class PlatformGovernanceRules:
             "production",
         ]
     )
-    allowed_data_classifications: List[str] = field(
+    allowed_data_classifications: list[str] = field(
         default_factory=lambda: [
             "public",
             "internal",
@@ -95,7 +93,7 @@ class PlatformGovernanceRules:
             "restricted",
         ]
     )
-    platform_injected_labels: Dict[str, str] = field(
+    platform_injected_labels: dict[str, str] = field(
         default_factory=lambda: {
             "managed_by": "airflow_platform_plugin",
             "platform_version": "1.0.0",
@@ -114,7 +112,7 @@ class PlatformGovernanceRules:
     # --------------------------------------------------------------------------
     # 5. Software, Image & Initialization Actions
     # --------------------------------------------------------------------------
-    allowed_image_versions: List[str] = field(
+    allowed_image_versions: list[str] = field(
         default_factory=lambda: [
             "2.2-debian12",
             "2.2-ubuntu22",
@@ -124,9 +122,7 @@ class PlatformGovernanceRules:
         ]
     )
     default_image_version: str = "2.2-debian12"
-    mandatory_initialization_actions: List[Dict[str, str]] = field(
-        default_factory=list
-    )
+    mandatory_initialization_actions: list[dict[str, str]] = field(default_factory=list)
 
 
 # Singleton default platform rules instance

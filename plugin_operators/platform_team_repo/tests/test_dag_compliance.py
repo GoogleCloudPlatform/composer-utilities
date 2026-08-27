@@ -57,36 +57,43 @@ class TestPlatformDAGCompliance(unittest.TestCase):
     def test_scan_domain_dags_for_raw_cluster_operator_imports(self):
         """Platform Policy Linter: Blocks raw DataprocCreateClusterOperator imports in domain DAGs."""
         for file_name, content in self._get_domain_dag_contents():
-            if "airflow.providers.google.cloud.operators.dataproc" in content:
-                if "DataprocCreateClusterOperator" in content and "SecureDataprocCreateClusterOperator" not in content:
-                    self.fail(
-                        f"Platform Policy Violation in {file_name}: Direct use of DataprocCreateClusterOperator is forbidden. "
-                        f"Please import and use SecureDataprocCreateClusterOperator."
-                    )
+            if (
+                "airflow.providers.google.cloud.operators.dataproc" in content
+                and "DataprocCreateClusterOperator" in content
+                and "SecureDataprocCreateClusterOperator" not in content
+            ):
+                self.fail(
+                    f"Platform Policy Violation in {file_name}: Direct use of DataprocCreateClusterOperator is forbidden. "
+                    f"Please import and use SecureDataprocCreateClusterOperator."
+                )
 
     def test_scan_domain_dags_for_raw_job_operator_imports(self):
         """Platform Policy Linter: Blocks raw DataprocSubmitJobOperator imports without secure plugin."""
         for file_name, content in self._get_domain_dag_contents():
-            if "airflow.providers.google.cloud.operators.dataproc" in content:
-                if "DataprocSubmitJobOperator" in content and "SecureDataprocSubmitJobOperator" not in content:
-                    self.fail(
-                        f"Platform Policy Violation in {file_name}: Direct use of DataprocSubmitJobOperator is forbidden. "
-                        f"Please import and use SecureDataprocSubmitJobOperator."
-                    )
+            if (
+                "airflow.providers.google.cloud.operators.dataproc" in content
+                and "DataprocSubmitJobOperator" in content
+                and "SecureDataprocSubmitJobOperator" not in content
+            ):
+                self.fail(
+                    f"Platform Policy Violation in {file_name}: Direct use of DataprocSubmitJobOperator is forbidden. "
+                    f"Please import and use SecureDataprocSubmitJobOperator."
+                )
 
     def test_scan_domain_dags_for_hardcoded_security_bypass(self):
         """Platform Policy Linter: Ensures no domain DAGs hardcode public IP bypasses."""
         for file_name, content in self._get_domain_dag_contents():
             # In sample_guardrail_violation_dag.py, this is tested inside a test function that asserts an exception
             # Real DAG definitions outside violation demo functions should not have raw public IP configs
-            if file_name != "sample_guardrail_violation_dag.py":
-                if "internal_ip_only=False" in content.replace(" ", ""):
-                    self.fail(
-                        f"Platform Policy Violation in {file_name}: Attempting to disable private IP enforcement "
-                        f"(internal_ip_only=False) is forbidden."
-                    )
+            if (
+                file_name != "sample_guardrail_violation_dag.py"
+                and "internal_ip_only=False" in content.replace(" ", "")
+            ):
+                self.fail(
+                    f"Platform Policy Violation in {file_name}: Attempting to disable private IP enforcement "
+                    f"(internal_ip_only=False) is forbidden."
+                )
 
 
 if __name__ == "__main__":
     unittest.main()
-

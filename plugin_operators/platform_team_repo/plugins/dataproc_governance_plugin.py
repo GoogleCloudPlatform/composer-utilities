@@ -14,14 +14,16 @@
 
 """Airflow Plugin exposing Governed Dataproc Operators in Managed Service for Apache Airflow (formerly Cloud Composer)."""
 
-from typing import Any, List
+from typing import Any, ClassVar
 
 try:
     from airflow.plugins_manager import AirflowPlugin
 except ImportError:
+
     class AirflowPlugin:
         name: str = ""
-        operators: List[Any] = []
+        operators: ClassVar[list[Any]] = []
+
 
 try:
     from operators.dataproc_job_operator import SecureDataprocSubmitJobOperator
@@ -31,7 +33,9 @@ try:
     )
 except ImportError:
     try:
-        from plugins.operators.dataproc_job_operator import SecureDataprocSubmitJobOperator
+        from plugins.operators.dataproc_job_operator import (
+            SecureDataprocSubmitJobOperator,
+        )
         from plugins.operators.secure_dataproc_operator import (
             SecureDataprocCreateClusterOperator,
             SecureDataprocDeleteClusterOperator,
@@ -48,7 +52,7 @@ class DataprocGovernancePlugin(AirflowPlugin):
     """Managed Service for Apache Airflow Plugin exposing Enterprise Governed Dataproc Operators."""
 
     name = "dataproc_governance_plugin"
-    operators = [
+    operators: ClassVar[list[Any]] = [
         SecureDataprocCreateClusterOperator,
         SecureDataprocDeleteClusterOperator,
         SecureDataprocSubmitJobOperator,

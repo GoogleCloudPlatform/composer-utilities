@@ -14,14 +14,14 @@
 
 """Custom exception hierarchy for Dataproc Platform Governance violations."""
 
-from typing import Any, Optional
+from typing import Any
 
 try:
     from airflow.exceptions import AirflowException
 except ImportError:
+
     class AirflowException(Exception):
         """Fallback AirflowException base class when airflow is not installed."""
-        pass
 
 
 class DataprocPolicyViolationException(AirflowException):
@@ -36,9 +36,9 @@ class DataprocPolicyViolationException(AirflowException):
         rule_id: str,
         rule_name: str,
         message: str,
-        current_value: Optional[Any] = None,
-        allowed_range_or_value: Optional[Any] = None,
-        remediation: Optional[str] = None,
+        current_value: Any | None = None,
+        allowed_range_or_value: Any | None = None,
+        remediation: str | None = None,
     ):
         self.rule_id = rule_id
         self.rule_name = rule_name
@@ -60,32 +60,25 @@ class DataprocPolicyViolationException(AirflowException):
             formatted_msg += f"║ Permitted   : {allowed_range_or_value}\n"
         if remediation:
             formatted_msg += f"║ Remediation : {remediation}\n"
-        formatted_msg += (
-            f"╚═══════════════════════════════════════════════════════════════════════════════════════════"
-        )
+        formatted_msg += "╚═══════════════════════════════════════════════════════════════════════════════════════════"
         super().__init__(formatted_msg)
 
 
 class SecurityPolicyViolationException(DataprocPolicyViolationException):
     """Raised when a security guardrail is breached (e.g., public IP, unauthorized service account, CMEK)."""
-    pass
 
 
 class ResourceQuotaExceededException(DataprocPolicyViolationException):
     """Raised when resource allocations exceed platform limits (e.g., worker count, disk size, disallowed GPU)."""
-    pass
 
 
 class MandatoryLabelMissingException(DataprocPolicyViolationException):
     """Raised when required FinOps or compliance metadata labels are missing or malformed."""
-    pass
 
 
 class LifecyclePolicyViolationException(DataprocPolicyViolationException):
     """Raised when cluster lifecycle configurations (idle TTL, max lifetime) violate platform limits."""
-    pass
 
 
 class NetworkPolicyViolationException(DataprocPolicyViolationException):
     """Raised when cluster network or subnetwork configurations violate platform network policies."""
-    pass

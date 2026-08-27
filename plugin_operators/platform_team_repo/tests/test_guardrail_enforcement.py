@@ -27,10 +27,8 @@ if PLUGINS_DIR not in sys.path:
     sys.path.insert(0, PLUGINS_DIR)
 
 try:
-    from config.cluster_tiers import ClusterTier
-    from config.governance_rules import DEFAULT_PLATFORM_RULES, PlatformGovernanceRules
+    from config.governance_rules import PlatformGovernanceRules
     from exceptions.policy_violations import (
-        DataprocPolicyViolationException,
         LifecyclePolicyViolationException,
         MandatoryLabelMissingException,
         NetworkPolicyViolationException,
@@ -39,17 +37,19 @@ try:
     )
     from operators.secure_dataproc_operator import SecureDataprocCreateClusterOperator
 except ImportError:
-    from plugins.config.cluster_tiers import ClusterTier
-    from plugins.config.governance_rules import DEFAULT_PLATFORM_RULES, PlatformGovernanceRules
+    from plugins.config.governance_rules import (
+        PlatformGovernanceRules,
+    )
     from plugins.exceptions.policy_violations import (
-        DataprocPolicyViolationException,
         LifecyclePolicyViolationException,
         MandatoryLabelMissingException,
         NetworkPolicyViolationException,
         ResourceQuotaExceededException,
         SecurityPolicyViolationException,
     )
-    from plugins.operators.secure_dataproc_operator import SecureDataprocCreateClusterOperator
+    from plugins.operators.secure_dataproc_operator import (
+        SecureDataprocCreateClusterOperator,
+    )
 
 
 class TestGuardrailEnforcement(unittest.TestCase):
@@ -375,11 +375,12 @@ class TestActionableErrorMessagesDisplay(unittest.TestCase):
                 },
             )
         if os.getenv("SHOW_BANNER") == "1":
-            print(f"\n[DEMO ACTIONABLE ERROR OUTPUT - RULE_QUOTA_002]:{ctx.exception}\n")
+            print(
+                f"\n[DEMO ACTIONABLE ERROR OUTPUT - RULE_QUOTA_002]:{ctx.exception}\n"
+            )
         self.assertIn("RULE_QUOTA_002", str(ctx.exception))
         self.assertIn("EXCESSIVE_WORKER_COUNT", str(ctx.exception))
 
 
 if __name__ == "__main__":
     unittest.main()
-

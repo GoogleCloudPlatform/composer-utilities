@@ -30,18 +30,16 @@ try:
     from config.cluster_tiers import (
         ClusterConfigBuilder,
         ClusterTier,
-        TIER_DEFINITIONS,
-        TierSpecification,
     )
-    from config.governance_rules import DEFAULT_PLATFORM_RULES, PlatformGovernanceRules
+    from config.governance_rules import PlatformGovernanceRules
 except ImportError:
     from plugins.config.cluster_tiers import (
         ClusterConfigBuilder,
         ClusterTier,
-        TIER_DEFINITIONS,
-        TierSpecification,
     )
-    from plugins.config.governance_rules import DEFAULT_PLATFORM_RULES, PlatformGovernanceRules
+    from plugins.config.governance_rules import (
+        PlatformGovernanceRules,
+    )
 
 
 class TestClusterTiers(unittest.TestCase):
@@ -72,14 +70,19 @@ class TestClusterTiers(unittest.TestCase):
         # Master config
         self.assertEqual(config["master_config"]["num_instances"], 1)
         self.assertEqual(config["master_config"]["machine_type_uri"], "e2-standard-4")
-        self.assertEqual(config["master_config"]["disk_config"]["boot_disk_size_gb"], 50)
+        self.assertEqual(
+            config["master_config"]["disk_config"]["boot_disk_size_gb"], 50
+        )
 
         # Worker config should be absent for single-node
         self.assertNotIn("worker_config", config)
 
         # Security & Network
         self.assertTrue(config["gce_cluster_config"]["internal_ip_only"])
-        self.assertIn("projects/test-project-123/regions/us-central1/subnetworks/", config["gce_cluster_config"]["subnetwork_uri"])
+        self.assertIn(
+            "projects/test-project-123/regions/us-central1/subnetworks/",
+            config["gce_cluster_config"]["subnetwork_uri"],
+        )
         self.assertEqual(config["endpoint_config"]["enable_http_port_access"], True)
 
         # Lifecycle
@@ -128,7 +131,7 @@ class TestClusterTiers(unittest.TestCase):
                 "metadata": {
                     "custom-env": "staging",
                 }
-            }
+            },
         }
         config = ClusterConfigBuilder.build_config(
             tier=ClusterTier.SMALL_ANALYTICS,
@@ -138,9 +141,15 @@ class TestClusterTiers(unittest.TestCase):
             custom_overrides=custom_overrides,
         )
 
-        self.assertEqual(config["software_config"]["properties"]["spark:spark.executor.cores"], "4")
-        self.assertEqual(config["gce_cluster_config"]["metadata"]["custom-env"], "staging")
-        self.assertEqual(config["gce_cluster_config"]["metadata"]["enable-oslogin"], "true")
+        self.assertEqual(
+            config["software_config"]["properties"]["spark:spark.executor.cores"], "4"
+        )
+        self.assertEqual(
+            config["gce_cluster_config"]["metadata"]["custom-env"], "staging"
+        )
+        self.assertEqual(
+            config["gce_cluster_config"]["metadata"]["enable-oslogin"], "true"
+        )
 
 
 if __name__ == "__main__":
