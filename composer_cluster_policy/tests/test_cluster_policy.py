@@ -14,10 +14,10 @@
 
 """Unit tests for Composer Cluster Policy (airflow_local_settings)."""
 
-from datetime import timedelta
 import os
 import sys
 import unittest
+from datetime import timedelta
 from unittest.mock import patch
 
 # Ensure the module can be imported

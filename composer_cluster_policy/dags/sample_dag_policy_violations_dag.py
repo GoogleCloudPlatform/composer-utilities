@@ -25,6 +25,7 @@ This DAG intentionally violates all 5 major DAG-level governance standards:
 from __future__ import annotations
 
 import datetime
+
 from airflow.decorators import dag
 from airflow.operators.bash import BashOperator
 

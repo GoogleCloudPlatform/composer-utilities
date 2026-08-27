@@ -41,10 +41,9 @@ Place this file as `airflow_local_settings.py` in your Cloud Composer environmen
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
 import os
-import re
+from datetime import timedelta
 from typing import Any
 
 try:

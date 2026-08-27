@@ -25,7 +25,6 @@ KubernetesPodOperator tasks pre-GKE submission and transparently remediates them
 from __future__ import annotations
 
 import datetime
-from datetime import timedelta
 import os
 
 from airflow.decorators import dag

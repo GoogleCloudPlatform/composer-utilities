@@ -24,6 +24,7 @@ but intentionally introduces 3 soft operational anti-patterns:
 from __future__ import annotations
 
 import datetime
+
 from airflow.decorators import dag
 from airflow.operators.bash import BashOperator
 

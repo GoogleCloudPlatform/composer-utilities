@@ -24,7 +24,6 @@ Demonstrates 3 classic pod-level operational & FinOps anti-patterns:
 from __future__ import annotations
 
 import datetime
-from datetime import timedelta
 import os
 
 from airflow.decorators import dag
