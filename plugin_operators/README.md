@@ -408,12 +408,6 @@ flowchart TD
 
 ---
 
-## Frequently Asked Questions (FAQs)
-
-For detailed architectural and developer guidance on repository separation, automated CI/CD PR testing, and multi-repo unit testing workflows, refer to the dedicated **[FAQs.md](FAQs.md)** file.
-
----
-
 ## Summary & Key Takeaways
 
 1. **Platform Standardization:** Custom plugin operators allow platform teams to encode enterprise compliance, networking, security, and FinOps standards directly into the operator class.
