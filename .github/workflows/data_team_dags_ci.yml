@@ -1,0 +1,47 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Data Team DAGs Governance CI
+
+# 🎯 Trigger ONLY when changes are made inside the data_team_repo directory
+on:
+  push:
+    paths:
+      - 'plugin_operators/data_team_repo/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'plugin_operators/data_team_repo/**'
+
+jobs:
+  verify-dag-governance:
+    name: Verify DAG Governance & Integrity
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🔒 Run Data Team DAG Governance Tests
+        run: |
+          echo "=========================================================="
+          echo "Validating Data Team DAGs against Platform Governance Rules"
+          echo "=========================================================="
+          python3 -B plugin_operators/run_tests.py --scope data
