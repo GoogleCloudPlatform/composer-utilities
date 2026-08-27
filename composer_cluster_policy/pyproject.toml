@@ -36,6 +36,7 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py39"
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

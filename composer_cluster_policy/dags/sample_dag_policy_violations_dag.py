@@ -34,14 +34,15 @@ DEFAULT_ARGS = {
     "retries": 0,
 }
 
+
 @dag(
     dag_id="sample_dag_policy_violations",
     description="Anti-pattern DAG demonstrating 5 major Level 1 governance violations",
     schedule="@daily",
     start_date=datetime.datetime(2026, 8, 20),
-    catchup=True,         # Violation 5: Dangerous backfill flood
-    max_active_runs=16,   # Violation 2: Excessive active concurrent runs
-    tags=[],              # Violation 4: Zero ownership/domain tags
+    catchup=True,  # Violation 5: Dangerous backfill flood
+    max_active_runs=16,  # Violation 2: Excessive active concurrent runs
+    tags=[],  # Violation 4: Zero ownership/domain tags
     default_args=DEFAULT_ARGS,
     # dagrun_timeout omitted (Violation 1: Uncapped total pipeline runtime)
 )
@@ -51,4 +52,6 @@ def sample_dag_policy_violations_dag():
         bash_command="echo 'Executing partition step for date: {{ ds }}' && sleep 2",
     )
 
+
 sample_dag_policy_violations_dag()
+

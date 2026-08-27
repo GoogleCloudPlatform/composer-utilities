@@ -50,16 +50,20 @@ from typing import Any
 try:
     from airflow.exceptions import AirflowClusterPolicyViolation
 except ImportError:
+
     class AirflowClusterPolicyViolation(Exception):
         """Fallback exception when airflow is not installed."""
         pass
 
+
 try:
     from airflow.policies import hookimpl
 except ImportError:
+
     def hookimpl(f):
         """Fallback hookimpl decorator when airflow is not installed."""
         return f
+
 
 # Configure logger
 logger = logging.getLogger("airflow.cluster_policy")
@@ -70,16 +74,24 @@ logger = logging.getLogger("airflow.cluster_policy")
 # ==============================================================================
 
 # Maximum allowed CPU request/limit per pod container (in cores, e.g. 4.0 = 4000m)
-MAX_ALLOWED_CPU_CORES: float = float(os.environ.get("COMPOSER_POLICY_MAX_CPU_CORES", "4.0"))
+MAX_ALLOWED_CPU_CORES: float = float(
+    os.environ.get("COMPOSER_POLICY_MAX_CPU_CORES", "4.0")
+)
 
 # Maximum allowed Memory request/limit per pod container (in MiB, e.g. 8192 = 8 GiB)
-MAX_ALLOWED_MEMORY_MIB: float = float(os.environ.get("COMPOSER_POLICY_MAX_MEMORY_MIB", "8192.0"))
+MAX_ALLOWED_MEMORY_MIB: float = float(
+    os.environ.get("COMPOSER_POLICY_MAX_MEMORY_MIB", "8192.0")
+)
 
 # Default resource fallback if omitted by the DAG author
 DEFAULT_CPU_REQUEST: str = os.environ.get("COMPOSER_POLICY_DEFAULT_CPU_REQUEST", "500m")
-DEFAULT_MEMORY_REQUEST: str = os.environ.get("COMPOSER_POLICY_DEFAULT_MEMORY_REQUEST", "1024Mi")
+DEFAULT_MEMORY_REQUEST: str = os.environ.get(
+    "COMPOSER_POLICY_DEFAULT_MEMORY_REQUEST", "1024Mi"
+)
 DEFAULT_CPU_LIMIT: str = os.environ.get("COMPOSER_POLICY_DEFAULT_CPU_LIMIT", "2000m")
-DEFAULT_MEMORY_LIMIT: str = os.environ.get("COMPOSER_POLICY_DEFAULT_MEMORY_LIMIT", "4096Mi")
+DEFAULT_MEMORY_LIMIT: str = os.environ.get(
+    "COMPOSER_POLICY_DEFAULT_MEMORY_LIMIT", "4096Mi"
+)
 
 # Namespace governance
 ALLOWED_NAMESPACES: set[str] = set(
@@ -89,7 +101,9 @@ ALLOWED_NAMESPACES: set[str] = set(
     ).split(",")
 )
 DEFAULT_NAMESPACE: str = "composer-user-workloads"
-ENFORCE_NAMESPACE: bool = os.environ.get("COMPOSER_POLICY_ENFORCE_NAMESPACE", "true").lower() == "true"
+ENFORCE_NAMESPACE: bool = (
+    os.environ.get("COMPOSER_POLICY_ENFORCE_NAMESPACE", "true").lower() == "true"
+)
 
 # Standard governance labels injected into mutated pods
 GOVERNANCE_LABELS: dict[str, str] = {
@@ -98,24 +112,33 @@ GOVERNANCE_LABELS: dict[str, str] = {
 }
 
 # Task policy settings
-DEFAULT_TASK_TIMEOUT_HOURS: int = int(os.environ.get("COMPOSER_POLICY_TASK_TIMEOUT_HOURS", "4"))
+DEFAULT_TASK_TIMEOUT_HOURS: int = int(
+    os.environ.get("COMPOSER_POLICY_TASK_TIMEOUT_HOURS", "4")
+)
 MAX_ALLOWED_RETRIES: int = int(os.environ.get("COMPOSER_POLICY_MAX_RETRIES", "3"))
 
 # GKE Workload Identity Cold-Start Mitigation Settings (RCA Solutions 1 & 2)
-ENABLE_INIT_CONTAINER_DELAY: bool = os.environ.get("COMPOSER_POLICY_ENABLE_INIT_DELAY", "false").lower() == "true"
-INIT_CONTAINER_DELAY_SECONDS: int = int(os.environ.get("COMPOSER_POLICY_INIT_DELAY_SECONDS", "15"))
+ENABLE_INIT_CONTAINER_DELAY: bool = (
+    os.environ.get("COMPOSER_POLICY_ENABLE_INIT_DELAY", "false").lower() == "true"
+)
+INIT_CONTAINER_DELAY_SECONDS: int = int(
+    os.environ.get("COMPOSER_POLICY_INIT_DELAY_SECONDS", "15")
+)
 # Use Google Container Registry image to avoid Docker Hub connection timeouts on Private GKE clusters
 INIT_CONTAINER_IMAGE: str = os.environ.get(
     "COMPOSER_POLICY_INIT_IMAGE",
     "gcr.io/google.com/cloudsdktool/cloud-sdk:latest",
 )
 KPO_MIN_RETRIES: int = int(os.environ.get("COMPOSER_POLICY_KPO_MIN_RETRIES", "2"))
-KPO_MIN_RETRY_DELAY_SECONDS: int = int(os.environ.get("COMPOSER_POLICY_KPO_MIN_RETRY_DELAY_SECONDS", "10"))
+KPO_MIN_RETRY_DELAY_SECONDS: int = int(
+    os.environ.get("COMPOSER_POLICY_KPO_MIN_RETRY_DELAY_SECONDS", "10")
+)
 
 
 # ==============================================================================
 # RESOURCE PARSING HELPERS
 # ==============================================================================
+
 
 def parse_cpu_to_cores(cpu_val: str | int | float | None) -> float | None:
     """Parses a Kubernetes CPU quantity string into a float representing cores."""
@@ -248,6 +271,7 @@ def _enforce_container_resources(container: Any) -> None:
     if resources is None:
         try:
             from kubernetes.client import models as k8s
+
             resources = k8s.V1ResourceRequirements(
                 requests={"cpu": DEFAULT_CPU_REQUEST, "memory": DEFAULT_MEMORY_REQUEST},
                 limits={"cpu": DEFAULT_CPU_LIMIT, "memory": DEFAULT_MEMORY_LIMIT},
@@ -260,7 +284,10 @@ def _enforce_container_resources(container: Any) -> None:
             return
         except ImportError:
             container.resources = {
-                "requests": {"cpu": DEFAULT_CPU_REQUEST, "memory": DEFAULT_MEMORY_REQUEST},
+                "requests": {
+                    "cpu": DEFAULT_CPU_REQUEST,
+                    "memory": DEFAULT_MEMORY_REQUEST,
+                },
                 "limits": {"cpu": DEFAULT_CPU_LIMIT, "memory": DEFAULT_MEMORY_LIMIT},
             }
             return
@@ -288,14 +315,22 @@ def _enforce_container_resources(container: Any) -> None:
             limits = resources.limits
 
     # Enforce CPU Requests
-    cpu_req = requests.get("cpu") if isinstance(requests, dict) else getattr(requests, "cpu", None)
+    cpu_req = (
+        requests.get("cpu")
+        if isinstance(requests, dict)
+        else getattr(requests, "cpu", None)
+    )
     parsed_cpu = parse_cpu_to_cores(cpu_req)
     if parsed_cpu is None:
         if isinstance(requests, dict):
             requests["cpu"] = DEFAULT_CPU_REQUEST
         else:
             setattr(requests, "cpu", DEFAULT_CPU_REQUEST)
-        logger.info("Cluster Policy [%s]: Set default CPU request '%s'", container_name, DEFAULT_CPU_REQUEST)
+        logger.info(
+            "Cluster Policy [%s]: Set default CPU request '%s'",
+            container_name,
+            DEFAULT_CPU_REQUEST,
+        )
     elif parsed_cpu > MAX_ALLOWED_CPU_CORES:
         max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
         logger.warning(
@@ -312,14 +347,22 @@ def _enforce_container_resources(container: Any) -> None:
             setattr(requests, "cpu", max_cpu_str)
 
     # Enforce Memory Requests
-    mem_req = requests.get("memory") if isinstance(requests, dict) else getattr(requests, "memory", None)
+    mem_req = (
+        requests.get("memory")
+        if isinstance(requests, dict)
+        else getattr(requests, "memory", None)
+    )
     parsed_mem = parse_memory_to_mib(mem_req)
     if parsed_mem is None:
         if isinstance(requests, dict):
             requests["memory"] = DEFAULT_MEMORY_REQUEST
         else:
             setattr(requests, "memory", DEFAULT_MEMORY_REQUEST)
-        logger.info("Cluster Policy [%s]: Set default Memory request '%s'", container_name, DEFAULT_MEMORY_REQUEST)
+        logger.info(
+            "Cluster Policy [%s]: Set default Memory request '%s'",
+            container_name,
+            DEFAULT_MEMORY_REQUEST,
+        )
     elif parsed_mem > MAX_ALLOWED_MEMORY_MIB:
         max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
         logger.warning(
@@ -336,14 +379,20 @@ def _enforce_container_resources(container: Any) -> None:
             setattr(requests, "memory", max_mem_str)
 
     # Enforce CPU Limits
-    cpu_lim = limits.get("cpu") if isinstance(limits, dict) else getattr(limits, "cpu", None)
+    cpu_lim = (
+        limits.get("cpu") if isinstance(limits, dict) else getattr(limits, "cpu", None)
+    )
     parsed_lim_cpu = parse_cpu_to_cores(cpu_lim)
     if parsed_lim_cpu is None:
         if isinstance(limits, dict):
             limits["cpu"] = DEFAULT_CPU_LIMIT
         else:
             setattr(limits, "cpu", DEFAULT_CPU_LIMIT)
-        logger.info("Cluster Policy [%s]: Set default CPU limit '%s'", container_name, DEFAULT_CPU_LIMIT)
+        logger.info(
+            "Cluster Policy [%s]: Set default CPU limit '%s'",
+            container_name,
+            DEFAULT_CPU_LIMIT,
+        )
     elif parsed_lim_cpu > MAX_ALLOWED_CPU_CORES:
         max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
         logger.warning(
@@ -358,14 +407,22 @@ def _enforce_container_resources(container: Any) -> None:
             setattr(limits, "cpu", max_cpu_str)
 
     # Enforce Memory Limits
-    mem_lim = limits.get("memory") if isinstance(limits, dict) else getattr(limits, "memory", None)
+    mem_lim = (
+        limits.get("memory")
+        if isinstance(limits, dict)
+        else getattr(limits, "memory", None)
+    )
     parsed_lim_mem = parse_memory_to_mib(mem_lim)
     if parsed_lim_mem is None:
         if isinstance(limits, dict):
             limits["memory"] = DEFAULT_MEMORY_LIMIT
         else:
             setattr(limits, "memory", DEFAULT_MEMORY_LIMIT)
-        logger.info("Cluster Policy [%s]: Set default Memory limit '%s'", container_name, DEFAULT_MEMORY_LIMIT)
+        logger.info(
+            "Cluster Policy [%s]: Set default Memory limit '%s'",
+            container_name,
+            DEFAULT_MEMORY_LIMIT,
+        )
     elif parsed_lim_mem > MAX_ALLOWED_MEMORY_MIB:
         max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
         logger.warning(
@@ -388,7 +445,9 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
         spec.init_containers = init_containers
 
     # Check if already injected
-    has_init = any(getattr(c, "name", "") == "custom-init-setup" for c in init_containers)
+    has_init = any(
+        getattr(c, "name", "") == "custom-init-setup" for c in init_containers
+    )
     if has_init:
         return
 
@@ -400,6 +459,7 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
 
     try:
         from kubernetes.client import models as k8s
+
         custom_init = k8s.V1Container(
             name="custom-init-setup",
             image=INIT_CONTAINER_IMAGE,
@@ -412,6 +472,7 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
                 self.name = name
                 self.image = image
                 self.command = command
+
         custom_init = _GenericInitContainer(
             name="custom-init-setup",
             image=INIT_CONTAINER_IMAGE,
@@ -443,14 +504,19 @@ def task_policy(task: Any) -> None:
     task_type = task.__class__.__name__
 
     # 0. Platform Exemption Guard: Skip internal Cloud Composer monitoring tasks
-    if dag_id == "airflow_monitoring" or str(dag_id).startswith(("airflow_monitoring", "composer_sample")):
+    if dag_id == "airflow_monitoring" or str(dag_id).startswith(
+        ("airflow_monitoring", "composer_sample")
+    ):
         return
 
     # 1. Enforce execution timeout
     if getattr(task, "execution_timeout", None) is None:
         if "timeout" in str(task_id).lower():
             task.execution_timeout = timedelta(seconds=10)
-            logger.info("Cluster Policy [Task %s]: Applied demo execution_timeout of 10 seconds.", task_id)
+            logger.info(
+                "Cluster Policy [Task %s]: Applied demo execution_timeout of 10 seconds.",
+                task_id,
+            )
         else:
             task.execution_timeout = timedelta(hours=DEFAULT_TASK_TIMEOUT_HOURS)
             logger.info(
@@ -471,26 +537,42 @@ def task_policy(task: Any) -> None:
         if res is not None:
             reqs = getattr(res, "requests", None)
             if reqs:
-                cpu_val = reqs.get("cpu") if isinstance(reqs, dict) else getattr(reqs, "cpu", None)
+                cpu_val = (
+                    reqs.get("cpu")
+                    if isinstance(reqs, dict)
+                    else getattr(reqs, "cpu", None)
+                )
                 parsed_cpu = parse_cpu_to_cores(cpu_val)
                 if parsed_cpu and parsed_cpu > MAX_ALLOWED_CPU_CORES:
                     max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
                     logger.warning(
                         "Cluster Policy [Task %s]: CPU request '%s' (%.1f cores) exceeded max allowed (%.1f cores). Clamping to '%s'.",
-                        task_id, cpu_val, parsed_cpu, MAX_ALLOWED_CPU_CORES, max_cpu_str,
+                        task_id,
+                        cpu_val,
+                        parsed_cpu,
+                        MAX_ALLOWED_CPU_CORES,
+                        max_cpu_str,
                     )
                     if isinstance(reqs, dict):
                         reqs["cpu"] = max_cpu_str
                     else:
                         setattr(reqs, "cpu", max_cpu_str)
 
-                mem_val = reqs.get("memory") if isinstance(reqs, dict) else getattr(reqs, "memory", None)
+                mem_val = (
+                    reqs.get("memory")
+                    if isinstance(reqs, dict)
+                    else getattr(reqs, "memory", None)
+                )
                 parsed_mem = parse_memory_to_mib(mem_val)
                 if parsed_mem and parsed_mem > MAX_ALLOWED_MEMORY_MIB:
                     max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
                     logger.warning(
                         "Cluster Policy [Task %s]: Memory request '%s' (%.1f MiB) exceeded max allowed (%.1f MiB). Clamping to '%s'.",
-                        task_id, mem_val, parsed_mem, MAX_ALLOWED_MEMORY_MIB, max_mem_str,
+                        task_id,
+                        mem_val,
+                        parsed_mem,
+                        MAX_ALLOWED_MEMORY_MIB,
+                        max_mem_str,
                     )
                     if isinstance(reqs, dict):
                         reqs["memory"] = max_mem_str
@@ -499,7 +581,11 @@ def task_policy(task: Any) -> None:
 
             lims = getattr(res, "limits", None)
             if lims:
-                cpu_lim = lims.get("cpu") if isinstance(lims, dict) else getattr(lims, "cpu", None)
+                cpu_lim = (
+                    lims.get("cpu")
+                    if isinstance(lims, dict)
+                    else getattr(lims, "cpu", None)
+                )
                 parsed_lim_cpu = parse_cpu_to_cores(cpu_lim)
                 if parsed_lim_cpu and parsed_lim_cpu > MAX_ALLOWED_CPU_CORES:
                     max_cpu_str = f"{int(MAX_ALLOWED_CPU_CORES * 1000)}m"
@@ -508,7 +594,11 @@ def task_policy(task: Any) -> None:
                     else:
                         setattr(lims, "cpu", max_cpu_str)
 
-                mem_lim = lims.get("memory") if isinstance(lims, dict) else getattr(lims, "memory", None)
+                mem_lim = (
+                    lims.get("memory")
+                    if isinstance(lims, dict)
+                    else getattr(lims, "memory", None)
+                )
                 parsed_lim_mem = parse_memory_to_mib(mem_lim)
                 if parsed_lim_mem and parsed_lim_mem > MAX_ALLOWED_MEMORY_MIB:
                     max_mem_str = f"{int(MAX_ALLOWED_MEMORY_MIB)}Mi"
@@ -520,7 +610,12 @@ def task_policy(task: Any) -> None:
         current_retries = getattr(task, "retries", 0) or 0
         if current_retries < KPO_MIN_RETRIES:
             task.retries = KPO_MIN_RETRIES
-            logger.info("Cluster Policy [Task %s]: Enforced minimum %d retries for %s.", task_id, KPO_MIN_RETRIES, task_type)
+            logger.info(
+                "Cluster Policy [Task %s]: Enforced minimum %d retries for %s.",
+                task_id,
+                KPO_MIN_RETRIES,
+                task_type,
+            )
 
         current_delay = getattr(task, "retry_delay", timedelta(0))
         min_delay = timedelta(seconds=KPO_MIN_RETRY_DELAY_SECONDS)
@@ -553,7 +648,9 @@ def dag_policy(dag: Any) -> None:
     dag_id = getattr(dag, "dag_id", "unknown")
 
     # 0. Platform Exemption Guard: Skip internal Cloud Composer monitoring and sample DAGs
-    if dag_id == "airflow_monitoring" or str(dag_id).startswith(("airflow_monitoring", "composer_sample")):
+    if dag_id == "airflow_monitoring" or str(dag_id).startswith(
+        ("airflow_monitoring", "composer_sample")
+    ):
         return
 
     # 1. Hard Gatekeeper: Catchup Flood Protection
@@ -619,7 +716,9 @@ try:
                 try:
                     task_policy(task)
                 except Exception as e:
-                    logger.error("Failed to apply task_policy in runtime listener: %s", e)
+                    logger.error(
+                        "Failed to apply task_policy in runtime listener: %s", e
+                    )
 
     _listener = ClusterPolicyListener()
 except Exception:

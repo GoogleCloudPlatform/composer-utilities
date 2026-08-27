@@ -33,6 +33,7 @@ DEFAULT_ARGS = {
     "depends_on_past": False,
 }
 
+
 @dag(
     dag_id="composer_sample_unprotected_task_violations",
     description="Demonstrates 3 classic task-level anti-patterns: hanging timeout, runaway retries, fragile single-shot (Unshielded Baseline)",
@@ -87,4 +88,6 @@ def sample_task_policy_violations_dag():
 
     hanging_query >> runaway_retries >> fragile_call
 
+
 sample_task_policy_violations_dag()
+

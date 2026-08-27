@@ -32,13 +32,16 @@ from airflow.decorators import dag
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 
-PROJECT_ID = os.environ.get("GCP_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT", "composer-utils")
+PROJECT_ID = os.environ.get("GCP_PROJECT") or os.environ.get(
+    "GOOGLE_CLOUD_PROJECT", "composer-utils"
+)
 
 DEFAULT_ARGS = {
     "owner": "data-engineering-team",
     "depends_on_past": False,
     "retries": 1,  # Upgraded to 2 by task_policy for KPO resilience
 }
+
 
 @dag(
     dag_id="sample_pod_policy_remediation",
@@ -83,4 +86,6 @@ def sample_pod_policy_remediation_dag():
         # Remediated by pod_mutation_hook -> Auto-injected with corporate FinOps labels
     )
 
+
 sample_pod_policy_remediation_dag()
+

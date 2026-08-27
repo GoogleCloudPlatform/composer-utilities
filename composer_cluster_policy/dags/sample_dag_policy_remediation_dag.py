@@ -32,14 +32,15 @@ DEFAULT_ARGS = {
     "retries": 1,
 }
 
+
 @dag(
     dag_id="sample_dag_policy_remediation",
     description="Demonstrates silent cluster policy auto-remediation (concurrency, tags, timeout)",
     schedule=None,
     start_date=datetime.datetime(2026, 1, 1),
-    catchup=False,         # Compliant catchup
-    max_active_runs=16,   # [Anti-Pattern 1] Clamped to 2 by dag_policy
-    tags=[],              # [Anti-Pattern 2] Injected with tags by dag_policy
+    catchup=False,  # Compliant catchup
+    max_active_runs=16,  # [Anti-Pattern 1] Clamped to 2 by dag_policy
+    tags=[],  # [Anti-Pattern 2] Injected with tags by dag_policy
     default_args=DEFAULT_ARGS,
     # dagrun_timeout omitted  # [Anti-Pattern 3] Injected with 4h by dag_policy
 )
@@ -51,4 +52,6 @@ def sample_dag_policy_remediation_dag():
         ),
     )
 
+
 sample_dag_policy_remediation_dag()
+

@@ -21,7 +21,9 @@ import unittest
 from unittest.mock import patch
 
 # Ensure the module can be imported
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 try:
@@ -32,6 +34,7 @@ except ImportError:
 
 class MockObject:
     """Helper class for creating mock objects with dynamic attributes."""
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -96,7 +99,9 @@ class TestPodMutationHook(unittest.TestCase):
 
         self.assertIsNotNone(container_no_resources.resources)
         resources = container_no_resources.resources
-        requests = resources["requests"] if isinstance(resources, dict) else resources.requests
+        requests = (
+            resources["requests"] if isinstance(resources, dict) else resources.requests
+        )
         self.assertEqual(requests["cpu"], "500m")
         self.assertEqual(requests["memory"], "1024Mi")
 
@@ -121,6 +126,7 @@ class TestPodMutationHook(unittest.TestCase):
 
     def test_handles_k8s_model_objects_without_type_error(self):
         """Verify object-based resource definitions are clamped and updated safely without TypeError."""
+
         class ResourceSpec:
             def __init__(self, cpu, memory):
                 self.cpu = cpu
@@ -155,8 +161,8 @@ class TestPodMutationHook(unittest.TestCase):
         with patch.object(policy, "ENABLE_INIT_CONTAINER_DELAY", True):
             policy.pod_mutation_hook(self.pod)
             self.assertIsNotNone(self.pod.spec.init_containers)
-            names = [getattr(c, 'name', '') for c in self.pod.spec.init_containers]
-            self.assertIn('custom-init-setup', names)
+            names = [getattr(c, "name", "") for c in self.pod.spec.init_containers]
+            self.assertIn("custom-init-setup", names)
 
     def test_injects_governance_labels(self):
         """Verify standard corporate/governance labels are attached."""
@@ -188,15 +194,22 @@ class TestTaskPolicy(unittest.TestCase):
 
     def test_enforces_kpo_retries_and_backoff(self):
         """Verify Solution 2: KPO tasks receive minimum retries and backoff for metadata server resilience."""
-        kpo_task = MockObject(task_id='gcloud_ls', execution_timeout=timedelta(hours=1), retries=0, retry_delay=timedelta(seconds=0))
-        kpo_task.__class__.__name__ = 'KubernetesPodOperator'
+        kpo_task = MockObject(
+            task_id="gcloud_ls",
+            execution_timeout=timedelta(hours=1),
+            retries=0,
+            retry_delay=timedelta(seconds=0),
+        )
+        kpo_task.__class__.__name__ = "KubernetesPodOperator"
         policy.task_policy(kpo_task)
         self.assertEqual(kpo_task.retries, 2)
         self.assertEqual(kpo_task.retry_delay, timedelta(seconds=10))
-        self.assertTrue(getattr(kpo_task, 'retry_exponential_backoff', False))
+        self.assertTrue(getattr(kpo_task, "retry_exponential_backoff", False))
 
     def test_clamps_excessive_retries(self):
-        task = MockObject(task_id="test_task", execution_timeout=timedelta(minutes=30), retries=10)
+        task = MockObject(
+            task_id="test_task", execution_timeout=timedelta(minutes=30), retries=10
+        )
         policy.task_policy(task)
         self.assertEqual(task.retries, 3)
 

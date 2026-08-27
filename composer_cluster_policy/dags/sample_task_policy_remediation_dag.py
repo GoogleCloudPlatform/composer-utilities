@@ -32,6 +32,7 @@ DEFAULT_ARGS = {
     "depends_on_past": False,
 }
 
+
 @dag(
     dag_id="sample_task_policy_remediation",
     description="Demonstrates task-level cluster policy auto-remediation (watchdogs, retry clamping)",
@@ -40,7 +41,7 @@ DEFAULT_ARGS = {
     catchup=False,
     max_active_runs=25,  # Clamped to 2 by dag_policy
     default_args=DEFAULT_ARGS,
-    tags=[],             # Injected with default tags by dag_policy
+    tags=[],  # Injected with default tags by dag_policy
 )
 def sample_task_policy_remediation_dag():
 
@@ -83,4 +84,6 @@ def sample_task_policy_remediation_dag():
 
     clamped_retries >> resilient_task >> watchdog_timeout
 
+
 sample_task_policy_remediation_dag()
+

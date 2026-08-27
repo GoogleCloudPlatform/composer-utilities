@@ -31,13 +31,16 @@ from airflow.decorators import dag
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 
-PROJECT_ID = os.environ.get("GCP_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT", "composer-utils")
+PROJECT_ID = os.environ.get("GCP_PROJECT") or os.environ.get(
+    "GOOGLE_CLOUD_PROJECT", "composer-utils"
+)
 
 DEFAULT_ARGS = {
     "owner": "data-engineering-team",
     "depends_on_past": False,
     "retries": 0,  # Anti-pattern: No retries for container lifecycle events
 }
+
 
 @dag(
     dag_id="composer_sample_unprotected_pod_violations",
@@ -79,4 +82,6 @@ def sample_pod_policy_violations_dag():
         # Anti-Pattern 3: Zero labels provided (omitted)
     )
 
+
 sample_pod_policy_violations_dag()
+
