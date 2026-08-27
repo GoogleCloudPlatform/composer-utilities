@@ -53,6 +53,7 @@ except ImportError:
 
     class AirflowClusterPolicyViolation(Exception):
         """Fallback exception when airflow is not installed."""
+
         pass
 
 

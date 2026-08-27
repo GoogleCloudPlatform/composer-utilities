@@ -53,6 +53,7 @@ except ImportError:
 
     class AirflowClusterPolicyViolation(Exception):
         """Fallback exception when airflow is not installed."""
+
         pass
 
 
@@ -196,6 +197,7 @@ def parse_memory_to_mib(mem_val: str | int | float | None) -> float | None:
 # ==============================================================================
 # POD MUTATION HOOK (Airflow Cluster Policy)
 # ==============================================================================
+
 
 @hookimpl
 def pod_mutation_hook(pod: Any) -> None:
@@ -491,6 +493,7 @@ def _inject_metadata_delay_init_container(spec: Any) -> None:
 # TASK POLICY (Airflow Cluster Policy)
 # ==============================================================================
 
+
 @hookimpl
 def task_policy(task: Any) -> None:
     """Enforces task-level operational standards across all operators.
@@ -641,6 +644,7 @@ def task_policy(task: Any) -> None:
 # ==============================================================================
 # DAG POLICY (Airflow Cluster Policy)
 # ==============================================================================
+
 
 @hookimpl
 def dag_policy(dag: Any) -> None:
