@@ -14,16 +14,24 @@
 
 name: Data Team DAGs Governance CI
 
-# 🎯 Trigger ONLY when changes are made inside the data_team_repo directory
+# 🎯 Trigger when changes are made inside plugin_operators or this workflow
 on:
   push:
-    paths:
-      - 'plugin_operators/data_team_repo/**'
     branches:
       - main
-  pull_request:
     paths:
-      - 'plugin_operators/data_team_repo/**'
+      - 'plugin_operators/**'
+      - '.github/workflows/data_team_dags_ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'plugin_operators/**'
+      - '.github/workflows/data_team_dags_ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   verify-dag-governance:
@@ -32,10 +40,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: '3.11'
 
