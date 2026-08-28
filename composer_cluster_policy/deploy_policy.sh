@@ -83,7 +83,8 @@ gcloud artifacts repositories add-iam-policy-binding "${AR_REPO}" \
 # 5. Build Distribution Wheel
 echo "[+] Building cluster policy distribution wheel..."
 cd "${PACKAGE_DIR}"
-rm -rf dist/ build/ *.egg-info
+rm -rf dist/ build/
+rm -rf *.egg-info src/*.egg-info 2>/dev/null || true
 pip3 wheel --no-deps -w dist/ .
 
 WHEEL_FILE="$(ls dist/*.whl | head -n 1)"
@@ -96,12 +97,13 @@ python3 -m twine upload \
     --username oauth2accesstoken \
     --password "$(gcloud auth print-access-token)" \
     --repository-url "https://${LOCATION}-python.pkg.dev/${PROJECT_ID}/${AR_REPO}/" \
-    "${WHEEL_FILE}" --skip-existing
+    "${WHEEL_FILE}"
 
 # 7. Configure Environment pip.conf
 BUCKET="$(gcloud composer environments describe "${ENV_NAME}" \
     --location="${LOCATION}" \
-    --format="value(config.storageConfig.bucket)")"
+    --format="value(storageConfig.bucket)")"
+BUCKET="${BUCKET#gs://}"
 
 echo "[+] Generating and uploading pip.conf to gs://${BUCKET}/config/pip/pip.conf..."
 cat << EOF > "${PACKAGE_DIR}/pip.conf"
