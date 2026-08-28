@@ -25,7 +25,7 @@ requires-python = ">=3.9"
 dependencies = []
 
 [project.entry-points."airflow.policy"]
-_ = "composer_cluster_policy.policies"
+composer_cluster_policy = "composer_cluster_policy.policies"
 
 [project.optional-dependencies]
 dev = [
