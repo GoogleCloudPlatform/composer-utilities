@@ -45,7 +45,7 @@ def test():
                 print(f"Found environments in {loc_id}:")
                 for e in envs["environments"]:
                     print(e["name"])
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Error: {e}")
 
 

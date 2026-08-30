@@ -17,5 +17,5 @@ import google.auth
 try:
     credentials, project = google.auth.default()
     print("Project from auth:", project)
-except Exception as e:
+except Exception as e:  # noqa: BLE001
     print(e)

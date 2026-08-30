@@ -1,5 +1,7 @@
 # Google Cloud Composer Control Panel
 
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2FGoogleCloudPlatform%2Fcomposer-utilities.git&cloudshell_workspace=control_panel%2F)
+
 A React-based administration dashboard for Google Cloud Composer (Apache Airflow) environments. The dashboard allows administrators and developers to monitor and manage DAGs (including pausing, unpausing, triggering runs, and performing bulk actions), view environment import errors, and edit DAG files directly in the browser across multiple GCP projects and regions from a single workspace.
 
 The application uses a FastAPI Python proxy server to bridge authentication, fetch metadata concurrently, and manage file operations securely.
@@ -22,6 +24,7 @@ The application uses a FastAPI Python proxy server to bridge authentication, fet
 6. [Testing](#testing)
 7. [Deployment to Google Cloud Run](#deployment-to-google-cloud-run)
    - [Required IAM Permissions](#required-iam-permissions)
+   - [Create Artifact Registry Repository](#create-artifact-registry-repository)
    - [Manual Deployment](#manual-deployment)
    - [Deploying with Cloud Build](#deploying-with-cloud-build)
    - [Securely Accessing the Control Panel](#securely-accessing-the-control-panel)
@@ -239,30 +242,46 @@ For the application to run successfully on Cloud Run, the Service Account assign
 2.  **`roles/composer.user`** (Composer User): Required to authorize and call Airflow REST API endpoints on the target Composer web servers.
 3.  **`roles/storage.objectUser`** (Storage Object User) on the Composer DAG buckets: Required to view and modify DAG `.py` files inside the GCS storage.
 
+### Create Artifact Registry Repository
+
+Before building and pushing the Docker image, ensure an Artifact Registry Docker repository exists in your target GCP project and region:
+
+```bash
+gcloud artifacts repositories create composer-control-panel-repo \
+  --repository-format=docker \
+  --location=us-central1 \
+  --description="Docker repository for Composer Control Panel"
+```
+
+To list existing repositories:
+```bash
+gcloud artifacts repositories list
+```
+
 ### Manual Deployment
 
 You can build and deploy the container manually using the Google Cloud SDK:
 
 ```bash
 # 1. Build and push image to Artifact Registry
-docker build -t REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest .
-docker push REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest
+docker build -t us-central1-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest .
+docker push us-central1-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest
 
 # 2. Deploy to Cloud Run
 gcloud run deploy composer-control-panel \
-  --image REGION-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest \
+  --image us-central1-docker.pkg.dev/PROJECT_ID/REPO_NAME/composer-control-panel:latest \
   --platform managed \
-  --region REGION \
+  --region us-central1 \
   --service-account YOUR_SERVICE_ACCOUNT_EMAIL \
   --allow-unauthenticated
 ```
 
 ### Deploying with Cloud Build
 
-A [cloudbuild.yaml](file:///Users/ddeleo/composer-utilities/control_panel/cloudbuild.yaml) file is included in this folder. You can execute it to build and deploy to Cloud Run automatically:
+A [cloudbuild.yaml](file:///Users/ddeleo/composer-utilities/control_panel/cloudbuild.yaml) file is included in this folder. You can execute it from the root repo folder to build and deploy to Cloud Run automatically:
 
 ```bash
-gcloud builds submit --config=cloudbuild.yaml \
+gcloud builds submit --config=control_panel/cloudbuild.yaml \
   --substitutions=_REGION="us-central1",_REPO_NAME="composer-control-panel-repo",_SERVICE_NAME="composer-control-panel-service"
 ```
 
@@ -272,7 +291,7 @@ Since the control panel provides powerful management actions, it should not be e
 
 1.  **Start a secure local proxy tunnel:**
     ```bash
-    gcloud beta run services proxy composer-control-panel-service --project=<PROJECT_ID> --region=<REGION> --port=8080
+    gcloud beta run services proxy composer-control-panel-service --region=us-central1 --port=8080
     ```
 2.  **Navigate to the proxy endpoint in your browser:**
     Open [http://127.0.0.1:8080](http://127.0.0.1:8080) to access the control panel interface.

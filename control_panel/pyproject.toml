@@ -46,3 +46,6 @@ disable_error_code = ["import-untyped"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
+
+[tool.ruff.lint.isort]
+known-first-party = ["proxy_server"]
