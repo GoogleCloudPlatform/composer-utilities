@@ -17,14 +17,15 @@ The application uses a FastAPI Python proxy server to bridge authentication, fet
 3. [Technology Stack](#technology-stack)
 4. [Directory Structure](#directory-structure)
 5. [Configuration Reference](#configuration-reference)
-6. [Backend API Reference](#backend-api-reference)
-7. [Local Development](#local-development)
+6. [Pattern Matching & Batch Operations](#pattern-matching--batch-operations)
+7. [Backend API Reference](#backend-api-reference)
+8. [Local Development](#local-development)
    - [Prerequisites](#prerequisites)
    - [1. Authenticate with Google Cloud](#1-authenticate-with-google-cloud)
    - [2. Run the Application](#2-run-the-application)
    - [Troubleshooting Local Dev](#troubleshooting-local-dev)
-8. [Testing & Quality](#testing--quality)
-9. [Deployment to Google Cloud Run](#deployment-to-google-cloud-run)
+9. [Testing & Quality](#testing--quality)
+10. [Deployment to Google Cloud Run](#deployment-to-google-cloud-run)
    - [Required IAM Permissions](#required-iam-permissions)
    - [Create Artifact Registry Repository](#create-artifact-registry-repository)
    - [Manual Deployment](#manual-deployment)
@@ -37,6 +38,7 @@ The application uses a FastAPI Python proxy server to bridge authentication, fet
 
 *   **Multi-Environment Management:** Dynamically list, filter, and switch between multiple Cloud Composer environments, or select **All Environments** to aggregate data across all instances.
 *   **Unified DAG View:** View, search, filter by tags/name, pause, unpause, and trigger DAGs across all environments in a single consolidated interface.
+*   **Pattern-Based Filtering & Batch Operations:** Filter DAGs and execute bulk actions across Airflow environments using Airflow REST API pattern parameters (`dag_id_pattern` and `dag_id_prefix_pattern`). Supports batch pause, unpause, task failure, task clearing, and DAG triggering.
 *   **In-Browser Monaco DAG Editor:** View and edit DAG Python code in the browser with Monaco Editor (syntax highlighting, theme synchronization, error line indicators), save changes directly to Google Cloud Storage (GCS) DAG buckets, and trigger on-demand reparsing.
 *   **On-Demand DAG Reparsing:** Touch DAG files in GCS to trigger Airflow DAG re-parsing without requiring manual GCS console navigation or file modifications.
 *   **Task Instance & Mapped Task Management:** Inspect DAG task instances and clear mapped or standard task runs directly from the dashboard.
@@ -206,6 +208,46 @@ The application is configured using environment variables:
 
 ---
 
+## Pattern Matching & Batch Operations
+
+The dashboard integrates with the Apache Airflow REST API's pattern-based filtering and batch update capabilities, enabling operators to query, pause, unpause, trigger, clear, or fail DAGs at scale across one or all Composer environments.
+
+### Airflow Pattern Parameter Semantics
+
+Airflow list and batch endpoints accept two pattern parameters for matching DAG IDs:
+
+| Parameter | Type | Semantics & Behavior | Best For |
+| :--- | :--- | :--- | :--- |
+| `dag_id_pattern` | Substring match | Case-insensitive substring match (`SQL ILIKE '%term%'`). `%` matches any character sequence, `_` matches any single character (e.g. `%customer_%`). Cannot utilize B-tree indexes. | Ad-hoc searches across tables with small-to-medium numbers of DAGs. |
+| `dag_id_prefix_pattern` | Prefix match | Matches the start of the value. Case-sensitive and index-friendly; `%` and `_` are treated as literal characters and trailing non-alphanumeric characters are stripped so the range scan remains index-compatible under locale-aware collations (e.g. `test_` matches values starting with `test`, and `s3://` matches `s3`). | High-scale environments with thousands of DAGs requiring fast index scans. |
+
+#### Universal Pattern Rules
+*   **`|` (Pipe):** Denotes logical **OR** (e.g., `dag1|dag2`).
+*   **`~` (Tilde):** Matches **all** values/DAGs (e.g., `~` targets every DAG in the environment).
+*   **No Regex:** Regular expressions are *not* supported by these pattern parameters.
+
+### Dashboard Features
+
+1.  **Unified Search & API Pattern Filter Bar:**
+    *   Located directly above the DAG table, an integrated input group combines a search input, pattern type dropdown (`Pattern (ILIKE %_)` vs `Prefix Pattern`), and `Filter API` button.
+    *   Typing into the input box provides immediate client-side table filtering.
+    *   Clicking **Filter API** (or pressing `Enter`) dispatches a request to the backend with the active pattern parameter (`dag_id_pattern` or `dag_id_prefix_pattern`), querying the Airflow REST API directly.
+    *   When active, an info banner highlights the active API filter with an option to clear it.
+2.  **Batch Operations Modal:**
+    *   Click the **⚡ Batch Operations by Pattern** button in the dashboard toolbar.
+    *   Select between Substring Pattern (`dag_id_pattern`) and Prefix Pattern (`dag_id_prefix_pattern`).
+    *   Enter a pattern with quick-insert shortcut buttons for `~` (All), `|` (OR), `%` (Wildcard), and `_` (Single char).
+    *   Choose the batch action:
+        *   **Pause Matching DAGs:** Executes `PATCH /api/v1/dags?{pattern_type}=...&update_mask=is_paused` with body `{"is_paused": true}`.
+        *   **Unpause Matching DAGs:** Executes `PATCH /api/v1/dags?{pattern_type}=...&update_mask=is_paused` with body `{"is_paused": false}`.
+        *   **Fail Running Tasks:** Queries matching DAGs and marks active task instances as failed.
+        *   **Clear Tasks:** Queries matching DAGs and resets latest run task instances.
+        *   **Trigger DAG Runs:** Queries matching DAGs and triggers execution runs.
+    *   **Live Preview:** Click **🔍 Preview Matches via API** to inspect which DAGs match the pattern across environments prior to executing the operation.
+    *   **Scope:** Target the active Composer environment or dispatch across **All Environments** concurrently.
+
+---
+
 ## Backend API Reference
 
 The FastAPI proxy server (`proxy_server.py`) exposes the following endpoints:
@@ -214,7 +256,8 @@ The FastAPI proxy server (`proxy_server.py`) exposes the following endpoints:
 | :--- | :--- | :--- |
 | `GET` | `/api/environments` | Lists all discovered Cloud Composer environments across configured projects and regions. |
 | `GET` | `/api/environments/{name}/details` | Retrieves full environment details (including GCS DAG bucket name) for a given environment. |
-| `GET` | `/api/all-dags` | Concurrently queries all discovered environments for their DAGs and import errors, returning an aggregated response. |
+| `GET` | `/api/all-dags` | Concurrently queries all discovered environments for their DAGs and import errors. Supports query parameters `dag_id_pattern` and `dag_id_prefix_pattern`. |
+| `PATCH` | `/api/all-dags` | Concurrently patches DAGs matching pattern query parameters (`dag_id_pattern`, `dag_id_prefix_pattern`, `update_mask`) across all discovered environments. |
 | `GET` | `/api/dags/{dag_id}/content` | Reads the Python source file for the specified DAG from its environment GCS bucket. |
 | `POST` | `/api/dags/{dag_id}/content` | Writes updated Python source code back to the DAG's GCS bucket. |
 | `POST` | `/api/dags/{dag_id}/reparse` | Touches the DAG blob in GCS (updates metadata) to trigger Airflow DAG re-parsing on demand. |

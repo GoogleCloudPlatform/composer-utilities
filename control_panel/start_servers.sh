@@ -43,6 +43,7 @@ PROXY_PID=$!
 echo "Installing NPM dependencies..."
 npm install
 echo "Starting NPM server..."
+export DANGEROUSLY_DISABLE_HOST_CHECK=true
 npm start &
 NPM_PID=$!
 

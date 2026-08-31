@@ -354,6 +354,85 @@ async def get_all_dags_concurrently(request: Request):
     return {"dags": all_dags, "import_errors": all_import_errors}
 
 
+async def patch_dags_for_environment(env, token, query_params, body):
+    """Patches DAGs matching a pattern for a single environment asynchronously."""
+    try:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        image_version = env.get("imageVersion", "")
+        api_version = "v2" if "-airflow-3" in image_version else "v1"
+        url = f"{env['url']}/api/{api_version}/dags"
+        resp = await http_client.patch(
+            url, headers=headers, params=query_params, json=body
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            dags = data.get("dags", [])
+            for dag in dags:
+                dag["environment"] = env
+            return {
+                "environment": env["name"],
+                "status": resp.status_code,
+                "dags": dags,
+                "total_entries": data.get("total_entries", len(dags)),
+            }
+        else:
+            logger.error(
+                f"Error patching DAGs for {env['name']}: {resp.status_code} - {resp.text}"
+            )
+            return {
+                "environment": env["name"],
+                "status": resp.status_code,
+                "error": resp.text,
+                "dags": [],
+                "total_entries": 0,
+            }
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception patching DAGs for {env['name']}: {e}")
+        return {
+            "environment": env["name"],
+            "status": 500,
+            "error": str(e),
+            "dags": [],
+            "total_entries": 0,
+        }
+
+
+@app.patch("/api/all-dags")
+async def patch_all_dags_concurrently(request: Request):
+    token = await get_valid_token()
+    if not token:
+        raise HTTPException(status_code=500, detail="Google Authentication Failed")
+
+    environments = await get_all_environments_async()
+    query_params = dict(request.query_params)
+    body = await request.json()
+
+    tasks = [
+        patch_dags_for_environment(env, token, query_params, body)
+        for env in environments
+    ]
+    results = await asyncio.gather(*tasks)
+
+    all_dags = []
+    total_updated = 0
+    errors = []
+    for res in results:
+        all_dags.extend(res.get("dags", []))
+        total_updated += res.get("total_entries", len(res.get("dags", [])))
+        if res.get("error"):
+            errors.append(f"{res['environment']}: {res['error']}")
+
+    return {
+        "dags": all_dags,
+        "total_entries": total_updated,
+        "environments": results,
+        "errors": errors if errors else None,
+    }
+
+
 def get_dag_content_sync(bucket_name, file_path):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(file_path)
