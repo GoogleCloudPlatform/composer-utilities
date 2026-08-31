@@ -159,8 +159,8 @@ For users who want to deploy without configuring a CI/CD trigger, run the includ
 ```bash
 chmod +x deploy_policy.sh
 
-# Usage: ./deploy_policy.sh <ENV_NAME> <LOCATION> <PROJECT_ID>
-./deploy_policy.sh composer-3-airflow-3 us-central1 composer-utils
+# Usage: ./deploy_policy.sh <ENV_NAME> <LOCATION> [AR_REPO]
+./deploy_policy.sh large-central1-airflow3 us-central1 composer-packages
 ```
 
 ---
