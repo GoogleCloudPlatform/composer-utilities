@@ -26,9 +26,8 @@ def test_get_environments():
     try:
         response = client.get("/api/environments")
         assert response.status_code in [200, 500]
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         # If it fails due to missing credentials during initialization (lifespan),
         # we might get an exception here or earlier.
         print(f"App initialization or request failed: {e}")
         # We don't fail the test if it's an auth issue, but we want to see it.
-        pass

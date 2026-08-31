@@ -17,7 +17,19 @@
 
 set -m # Enable job control so background processes get their own process group
 if [ -z "${COMPOSER_PROJECTS}" ]; then
-    export COMPOSER_PROJECTS="YOUR_PROJECT_ID_A,YOUR_PROJECT_ID_B,YOUR_PROJECT_ID_C"
+    GCLOUD_PROJECT=$(gcloud config get-value project 2>/dev/null)
+    if [ -n "${GCLOUD_PROJECT}" ] && [ "${GCLOUD_PROJECT}" != "(unset)" ]; then
+        export COMPOSER_PROJECTS="${GCLOUD_PROJECT}"
+        echo "Note: COMPOSER_PROJECTS environment variable is not set."
+        echo "COMPOSER_PROJECTS was automatically set to the current gcloud project: ${COMPOSER_PROJECTS}"
+        echo "If you would like to monitor additional projects, please set COMPOSER_PROJECTS before running this script, e.g.:"
+        echo "export COMPOSER_PROJECTS=\"YOUR_PROJECT_ID_A,YOUR_PROJECT_ID_B\""
+    else
+        echo "Error: COMPOSER_PROJECTS environment variable is not set."
+        echo "Please set it before running this script, e.g.:"
+        echo "export COMPOSER_PROJECTS=\"YOUR_PROJECT_ID_A,YOUR_PROJECT_ID_B\""
+        exit 1
+    fi
 fi
 
 if [ -z "${COMPOSER_LOCATIONS}" ]; then
@@ -28,6 +40,8 @@ echo "Starting Proxy Python server..."
 uv run proxy_server.py &
 PROXY_PID=$!
 
+echo "Installing NPM dependencies..."
+npm install
 echo "Starting NPM server..."
 npm start &
 NPM_PID=$!

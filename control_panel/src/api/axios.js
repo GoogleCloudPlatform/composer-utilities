@@ -24,7 +24,7 @@ const apiClient = axios.create({
   // This is a standard convention managed by the react-scripts package.
   baseURL: process.env.NODE_ENV === 'production'
     ? window.location.origin
-    : 'http://localhost:3001',
+    : '', // Use relative paths so the react-scripts proxy handles requests
 });
 
 const getEnvironment = () => {
