@@ -1,4 +1,7 @@
 # Composer Utilities
+
+[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.svg)](https://shell.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2FGoogleCloudPlatform%2Fcomposer-utilities.git&cloudshell_workspace=control_panel%2F)
+
 This repo contains experimental utilities to help users of [Cloud Composer](https://cloud.google.com/composer).
 
 For samples, please see [Python Docs Samples](https://github.com/GoogleCloudPlatform/python-docs-samples/tree/main/composer) which contains code samples found in [Composer documentation](cloud.google.com/composer)

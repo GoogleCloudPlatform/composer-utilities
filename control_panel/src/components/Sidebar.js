@@ -35,17 +35,8 @@ function Sidebar() {
         }
       })
       .catch(error => console.error('Error fetching environments:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const getBadgeVariant = (method) => {
-    switch (method.toUpperCase()) {
-      case 'GET': return 'success';
-      case 'POST': return 'primary';
-      case 'PATCH': return 'warning';
-      case 'DELETE': return 'danger';
-      default: return 'secondary';
-    }
-  };
 
   return (
     <div className="h-100 d-flex flex-column justify-content-between">

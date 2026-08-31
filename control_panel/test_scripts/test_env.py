@@ -31,7 +31,7 @@ def test():
             .execute()
         )
         print(json.dumps(envs, indent=2))
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Error: {e}")
 
 

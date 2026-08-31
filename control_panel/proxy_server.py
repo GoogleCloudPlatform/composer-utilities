@@ -32,6 +32,7 @@ from google.cloud import storage  # type: ignore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Global variables
 storage_client = None
@@ -52,8 +53,8 @@ async def lifespan(app: FastAPI):
         google_credentials, _ = google.auth.default(
             scopes=["https://www.googleapis.com/auth/cloud-platform"]
         )
-    except Exception as e:
-        logging.error(f"Error getting default Google credentials: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error getting default Google credentials: {e}")
         # Will fallback and error locally if it doesn't work
 
     try:
@@ -62,11 +63,11 @@ async def lifespan(app: FastAPI):
 
         socket.setdefaulttimeout(60)
         storage_client = storage.Client()
-    except Exception as e:
-        logging.error(f"Error building global Google API clients: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error building global Google API clients: {e}")
 
     # Initialize shared async HTTP client
-    http_client = httpx.AsyncClient(timeout=90.0)
+    http_client = httpx.AsyncClient(timeout=300.0)
 
     yield  # Let the app run
 
@@ -109,14 +110,13 @@ def get_gcp_project_id():
             project_id = subprocess.check_output(
                 ["gcloud", "config", "get-value", "project"], text=True
             ).strip()
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
     return project_id
 
 
 async def get_valid_token():
     """Lazily refresh the google credentials to ensure we have a valid token."""
-    global google_credentials
     if not google_credentials:
         return None
 
@@ -139,7 +139,7 @@ async def get_all_environments_async():
 
     token = await get_valid_token()
     if not token:
-        logging.error("Failed to get valid token for environment fetch")
+        logger.error("Failed to get valid token for environment fetch")
         return cached_environments if cached_environments is not None else []
 
     headers = {"Authorization": f"Bearer {token}"}
@@ -150,7 +150,7 @@ async def get_all_environments_async():
     else:
         project_id = get_gcp_project_id()
         if not project_id:
-            logging.error("Google Cloud project ID could not be determined.")
+            logger.error("Google Cloud project ID could not be determined.")
             return cached_environments if cached_environments is not None else []
         projects = [project_id]
 
@@ -191,11 +191,11 @@ async def get_all_environments_async():
                                 }
                             )
                 else:
-                    logging.error(
+                    logger.error(
                         f"Error fetching environments for project {project} location {loc}: {resp.status_code} - {resp.text}"
                     )
-            except Exception as e:
-                logging.error(
+            except Exception as e:  # noqa: BLE001
+                logger.error(
                     f"Exception fetching environments for project {project} location {loc}: {e}"
                 )
 
@@ -207,7 +207,7 @@ async def get_all_environments_async():
         return cached_environments
 
     if cached_environments is not None:
-        logging.warning("Returning stale cached environments due to fetch error.")
+        logger.warning("Returning stale cached environments due to fetch error.")
         return cached_environments
     return []
 
@@ -226,12 +226,12 @@ async def fetch_environment_details_async(project, location, name):
         if resp.status_code == 200:
             return resp.json()
         else:
-            logging.error(
+            logger.error(
                 f"Error fetching details for {name}: {resp.status_code} - {resp.text}"
             )
             return None
-    except Exception as e:
-        logging.error(f"Exception fetching details for {name}: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Exception fetching details for {name}: {e}")
         return None
 
 
@@ -324,8 +324,8 @@ async def fetch_dags_and_errors_for_environment(env, token, query_params):
 
         return {"dags": dags_data, "import_errors": import_errors_data}
 
-    except Exception as e:
-        logging.error(f"Error fetching data for {env['name']}: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error fetching data for {env['name']}: {e}")
         return {"dags": [], "import_errors": []}
 
 
@@ -413,8 +413,8 @@ async def get_dag_content(dag_id: str, request: Request, filename: str | None = 
     try:
         content = await asyncio.to_thread(get_dag_content_sync, bucket_name, file_path)
         return Response(content=content, media_type="text/plain")
-    except Exception as e:
-        logging.error(f"Error fetching DAG content: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error fetching DAG content: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -441,7 +441,7 @@ async def update_dag_content(
     try:
         ast.parse(content, filename=filename or f"{dag_id}.py")
     except SyntaxError as e:
-        logging.error(f"Syntax error in submitted DAG code: {e}")
+        logger.error(f"Syntax error in submitted DAG code: {e}")
         raise HTTPException(
             status_code=422,
             detail={
@@ -475,8 +475,8 @@ async def update_dag_content(
             update_dag_content_sync, bucket_name, file_path, content
         )
         return {"message": "DAG content updated successfully."}
-    except Exception as e:
-        logging.error(f"Error updating DAG content: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error updating DAG content: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -484,7 +484,7 @@ def reparse_dag_sync(bucket_name, file_path):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(file_path)
     if not blob.exists():
-        raise Exception(f"File {file_path} not found in GCS bucket.")
+        raise RuntimeError(f"File {file_path} not found in GCS bucket.")
     content = blob.download_as_string()
     blob.upload_from_string(content)
 
@@ -518,8 +518,8 @@ async def reparse_dag(dag_id: str, request: Request, filename: str | None = None
     try:
         await asyncio.to_thread(reparse_dag_sync, bucket_name, file_path)
         return {"message": "DAG file touched successfully. Reparsing triggered."}
-    except Exception as e:
-        logging.error(f"Error touching DAG file: {e}")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"Error touching DAG file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -554,7 +554,7 @@ async def proxy(api_version: str, path: str, request: Request):
             method=request.method,
             url=airflow_url,
             headers=headers,
-            params=request.query_params,
+            params=tuple(request.query_params.multi_items()),
             content=req_body,
         )
 
@@ -573,8 +573,8 @@ async def proxy(api_version: str, path: str, request: Request):
         )
 
     except httpx.RequestError as e:
-        logging.error(f"Request Forwarding Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Proxy server error: {str(e)}")
+        logger.error(f"Request Forwarding Error: {e!r}")
+        raise HTTPException(status_code=500, detail=f"Proxy server error: {e!r}")
 
 
 # Serve React App
