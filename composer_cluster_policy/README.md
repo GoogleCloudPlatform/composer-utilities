@@ -159,8 +159,8 @@ For users who want to deploy without configuring a CI/CD trigger, run the includ
 ```bash
 chmod +x deploy_policy.sh
 
-# Usage: ./deploy_policy.sh <ENV_NAME> <LOCATION> <PROJECT_ID>
-./deploy_policy.sh composer-3-airflow-3 us-central1 composer-utils
+# Usage: ./deploy_policy.sh <ENV_NAME> <LOCATION> [AR_REPO]
+./deploy_policy.sh large-central1-airflow3 us-central1 composer-packages
 ```
 
 ---
@@ -214,7 +214,8 @@ python3 -m twine upload \
 ```bash
 BUCKET=$(gcloud composer environments describe composer-3-airflow-3 \
     --location=us-central1 \
-    --format="value(config.storageConfig.bucket)")
+    --format="value(storageConfig.bucket)")
+BUCKET="${BUCKET#gs://}"
 
 cat << EOF > pip.conf
 [global]
@@ -246,9 +247,34 @@ python3 -m unittest discover -s tests
 # Ran 17 tests in 0.002s - OK
 ```
 
----
-
 ### 2. Live Cluster Verification Across the 3 Tiers
+
+#### Step 1: Clone Repository & Deploy Demonstration DAGs
+
+##### If cloning for the first time:
+```bash
+git clone https://github.com/GoogleCloudPlatform/composer-utilities.git
+cd composer-utilities/composer_cluster_policy
+```
+
+##### If repository is already cloned:
+```bash
+cd composer-utilities/composer_cluster_policy
+# Or if already in the repo root:
+# cd composer_cluster_policy
+```
+
+##### Sync Demonstration DAGs to Cloud Storage:
+```bash
+BUCKET="$(gcloud composer environments describe large-central1-airflow3 \
+    --location=us-central1 \
+    --format="value(storageConfig.bucket)")"
+BUCKET="${BUCKET#gs://}"
+
+gcloud storage cp dags/*.py "gs://${BUCKET}/dags/"
+```
+
+---
 
 #### Tier 1: DAG-Level Governance (`dag_policy`)
 * **Before (`sample_dag_policy_violations_dag.py`)**:
