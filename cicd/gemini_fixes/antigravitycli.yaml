@@ -1,0 +1,148 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+steps:
+  - id: 'Install agent skills'
+    name: 'node:20'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        #!/usr/bin/env bash
+
+        # Enable exit-on-error mode
+        set -eo pipefail
+
+        # Copy local skills into temporary .agents directory in workspace
+        mkdir -p .agents/skills
+        cp -r cicd/gemini_fixes/.agents/skills/* .agents/skills/
+
+        # Install managed-airflow-dag-authoring skill from google/skills using npx (scoped to antigravity-cli only)
+        npx -y skills add google/skills --skill managed-airflow-dag-authoring --agent antigravity-cli -y
+
+  - id : 'Run Antigravity CLI for local tests'
+    name: 'ubuntu'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        #!/usr/bin/env bash
+
+        # Enable exit-on-error mode
+        set -eo pipefail
+
+        # Install dependencies
+        apt-get update && apt-get install -y curl ca-certificates git docker.io ripgrep
+
+        # Download and install Antigravity CLI
+        curl -fsSL https://antigravity.google/cli/install.sh | bash
+
+        # Add agy to PATH and execute it
+        export PATH="$$HOME/.local/bin:$$PATH"
+
+        # Run Antigravity CLI to optimize DAGs and run local tests
+        agy ${_AGY_FLAGS} --prompt "$(cat << 'EOF'
+        /local-airflow-unit-tests
+        Optimize the Airflow DAGs making any fixes necessary to pass all local tests.
+        Once finished, remove any temporary files created during testing.
+        Finally, run:
+          `uvx ruff check --select I --fix && uvx ruff check --fix --unsafe-fixes && uvx ruff format`
+        only on the files you've changed to ensure that they're properly formatted.
+        EOF
+        )"
+    env:
+      - 'AGY_ADC_AUTH=true'
+
+  - id: 'Commit and push changes'
+    name: 'ubuntu'
+    entrypoint: 'bash'
+    secretEnv: ['GITHUB_TOKEN']
+    args:
+      - '-c'
+      - |
+        #!/usr/bin/env bash
+
+        # Enable exit-on-error mode
+        set -eo pipefail
+
+        # Install dependencies
+        apt-get update && apt-get install -y curl ca-certificates git
+
+        # Install GitHub CLI (gh)
+        curl -sSLo /tmp/gh.tar.gz https://github.com/cli/cli/releases/download/v2.51.0/gh_2.51.0_linux_amd64.tar.gz
+        tar -xzf /tmp/gh.tar.gz -C /tmp
+        mv /tmp/gh_2.51.0_linux_amd64/bin/gh /usr/local/bin/
+        rm -rf /tmp/gh.tar.gz /tmp/gh_2.51.0_linux_amd64
+
+        # Download and install Antigravity CLI
+        curl -fsSL https://antigravity.google/cli/install.sh | bash
+
+        # Add agy to PATH and execute it
+        export PATH="$$HOME/.local/bin:$$PATH"
+
+        # Remove temporary skill directories and files so they're not included in the commit
+        rm -rf .agents .claude skills-lock.json
+
+        if [[ -n $$(git status -s) ]]; then
+          echo "Changes detected. Creating a feature branch..."
+          git config --global user.email "${SERVICE_ACCOUNT_EMAIL}"
+          git config --global user.name "Cloud Build"
+
+          export GH_TOKEN=$$GITHUB_TOKEN
+          gh auth setup-git
+
+          AGY_FIX_BRANCH_NAME="agy-fix-${BUILD_ID}"
+          git checkout -b "$$AGY_FIX_BRANCH_NAME"
+
+          git add -A
+          git commit -m "Automated updates from Antigravity CLI"
+          git push origin "$$AGY_FIX_BRANCH_NAME"
+
+          echo "Generating PR description with Antigravity CLI..."
+          git diff HEAD~1..HEAD > /tmp/pr_diff.txt
+
+          # Generate PR description using Antigravity CLI
+          agy ${_AGY_FLAGS} --prompt "$(cat << 'EOF'
+          Generate a detailed pull request description for these changes
+          in markdown format: @/tmp/pr_diff.txt. Focus on what changed
+          and why. Do not include any conversational filler, just the markdown description.
+        EOF
+        )" | tee /tmp/pr_body.md
+
+          echo "Creating pull request on GitHub..."
+          gh pr create \
+            --title "Automated updates from Antigravity CLI" \
+            --body-file /tmp/pr_body.md \
+            --head "$$AGY_FIX_BRANCH_NAME" \
+            --base "$$BRANCH_NAME"
+        else
+          echo "No changes detected."
+        fi
+    env:
+      - BRANCH_NAME=${BRANCH_NAME}
+      - 'AGY_ADC_AUTH=true'
+
+substitutions:
+  _AGY_FLAGS: '--model="Gemini 3.7 Flash (High)" --add-dir /workspace --dangerously-skip-permissions --print-timeout=2h'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_32'
+  dynamicSubstitutions: true
+
+timeout: 14400s # 4 hours
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/antigravity-cli-github-token/versions/latest
+      env: 'GITHUB_TOKEN'
