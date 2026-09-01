@@ -35,8 +35,9 @@ and operational resilience policies for Google Cloud Composer (Composer 2 and Co
    - Enforces DAG ownership, tags, and documentation standards.
 
 Deployment:
-Place this file as `airflow_local_settings.py` in your Cloud Composer environment's
-`plugins/` folder (or sync via GCS: `gs://<composer-bucket>/plugins/airflow_local_settings.py`).
+Packaged as a Python distribution wheel and installed into Cloud Composer via
+Google Cloud Artifact Registry registering the `[airflow.policy]` entry point.
+See `deploy_policy.sh` and `README.md` for full deployment instructions.
 """
 
 from __future__ import annotations
