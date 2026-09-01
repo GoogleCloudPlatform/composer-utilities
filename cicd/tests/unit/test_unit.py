@@ -58,6 +58,12 @@ def test_all_dags_have_start_date(dagbag):
         assert dag.start_date is not None, f"DAG {dag_id} does not have a start_date."
 
 
+def test_all_dags_have_owner(dagbag):
+    """Tests that all DAGs have an owner assigned to the owner property."""
+    for dag_id, dag in dagbag.dags.items():
+        assert dag.owner, f"DAG {dag_id} does not have an owner."
+
+
 def test_sleepy_dynamic_task_mapping_structure(dagbag):
     dag = dagbag.get_dag("sleepy_dynamic_task_mapping")
     assert dag is not None, "DAG sleepy_dynamic_task_mapping not found."

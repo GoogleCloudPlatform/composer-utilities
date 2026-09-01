@@ -65,6 +65,7 @@ with DAG(
     start_date=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
     catchup=False,
     tags=["bigquery", "load_test"],
+    owner="google-pso",
 ) as dag:
     bash_commands = generate_bash_commands()
 
