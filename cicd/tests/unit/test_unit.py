@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from airflow.models import DagBag
 
-PARSING_DURATION_THRESHOLD = 2.5
+PARSING_DURATION_THRESHOLD = 2.0
 
 
 @pytest.fixture(scope="session")
