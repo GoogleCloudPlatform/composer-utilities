@@ -65,6 +65,10 @@ with DAG(
     start_date=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
     catchup=False,
     tags=["bigquery", "load_test"],
+    default_args={
+        "retries": 2,
+        "retry_delay": datetime.timedelta(minutes=5),
+    },
 ) as dag:
     bash_commands = generate_bash_commands()
 
