@@ -251,12 +251,12 @@ def main(config_json: str):
         message = res.get('message', 'Unknown error')
 
         if status == 'SUCCESS':
-            report_lines.append(f"    ✅ Status: SUCCESS")
+            report_lines.append("    ✅ Status: SUCCESS")
         elif status == 'WARNING':
-            report_lines.append(f"    ⚠️ Status: WARNING")
+            report_lines.append("    ⚠️ Status: WARNING")
             has_issues = True
         elif status == 'ERROR':
-            report_lines.append(f"    🚨 Status: FAILED")
+            report_lines.append("    🚨 Status: FAILED")
             has_issues = True
 
         report_lines.append(f"       Details: {message}")

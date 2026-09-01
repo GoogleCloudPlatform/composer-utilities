@@ -173,11 +173,11 @@ def _verify_docker_image_v2(image_uri: str) -> bool:
         )
 
         if response.status_code == 200:
-            print(f"   ✅ Manifest found (HTTP 200). Valid Custom Image.")
+            print("   ✅ Manifest found (HTTP 200). Valid Custom Image.")
             return True
 
         if response.status_code == 404:
-            print(f"   ℹ️  Manifest not found (HTTP 404). Confirmed Vanilla Environment.")
+            print("   ℹ️  Manifest not found (HTTP 404). Confirmed Vanilla Environment.")
             return False
 
         print(f"   ⚠️  Access Forbidden (HTTP {response.status_code}). Assuming Vanilla.")
