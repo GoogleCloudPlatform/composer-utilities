@@ -97,8 +97,8 @@ default_args = {
 PYSPARK_JOB = {
     "reference": {"project_id": GCP_PROJECT_ID},
     "placement": {
-        # Dynamically pulls the exact cluster name created by upstream operator via XCom
-        "cluster_name": "{{ ti.xcom_pull(task_ids='create_governed_dataproc_cluster', key='dataproc_cluster')['cluster_id'] }}"
+        # Using templated CLUSTER_NAME guarantees 100% compatibility across Airflow 2.x and 3.x
+        "cluster_name": CLUSTER_NAME,
     },
     "pyspark_job": {
         # file:// points to the standard PySpark Pi example pre-installed on all Dataproc nodes
@@ -161,7 +161,7 @@ with DAG(
         task_id="delete_dataproc_cluster",
         project_id=GCP_PROJECT_ID,
         region=GCP_REGION,
-        cluster_name="{{ ti.xcom_pull(task_ids='create_governed_dataproc_cluster', key='dataproc_cluster')['cluster_id'] }}",
+        cluster_name=CLUSTER_NAME,
         trigger_rule="all_done",
     )
 
