@@ -123,9 +123,7 @@ def test_get_all_dags_with_pattern():
         ),
         patch("proxy_server.http_client", mock_http),
     ):
-        response = client.get(
-            "/api/all-dags?dag_id_pattern=%25customer_%25"
-        )
+        response = client.get("/api/all-dags?dag_id_pattern=%25customer_%25")
         assert response.status_code == 200
         data = response.json()
         assert len(data["dags"]) == 1
