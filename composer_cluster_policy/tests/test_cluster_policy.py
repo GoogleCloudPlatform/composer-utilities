@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit tests for Composer Cluster Policy (airflow_local_settings)."""
+"""Unit tests for Composer Cluster Policy package (composer_cluster_policy)."""
 
 import os
 import sys
@@ -60,7 +60,7 @@ class TestResourceParsers(unittest.TestCase):
 
 
 class TestPodMutationHook(unittest.TestCase):
-    """Tests for pod_mutation_hook in airflow_local_settings."""
+    """Tests for pod_mutation_hook in composer_cluster_policy."""
 
     def setUp(self):
         self.container = MockObject(
@@ -185,7 +185,7 @@ class TestPodMutationHook(unittest.TestCase):
 
 
 class TestTaskPolicy(unittest.TestCase):
-    """Tests for task_policy in airflow_local_settings."""
+    """Tests for task_policy in composer_cluster_policy."""
 
     def test_enforces_execution_timeout(self):
         task = MockObject(task_id="test_task", execution_timeout=None, retries=1)
@@ -215,7 +215,7 @@ class TestTaskPolicy(unittest.TestCase):
 
 
 class TestDagPolicy(unittest.TestCase):
-    """Tests for dag_policy in airflow_local_settings."""
+    """Tests for dag_policy in composer_cluster_policy."""
 
     def test_dag_policy_runs_cleanly(self):
         dag = MockObject(
