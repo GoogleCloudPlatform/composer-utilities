@@ -23,5 +23,9 @@ An administration dashboard to manage DAGs (pause, unpause, trigger, and bulk op
 ## [Managed Airflow Cluster Policy Manager](./composer_cluster_policy)
 Provides production-grade Airflow Cluster Policies for Cloud Composer to enforce resource governance, clamp excessive KubernetesPodOperator requests, and enforce task and DAG metadata standards.
 
-
-
+## [Cloud Composer CI/CD Pipeline](./cicd)
+A template and sample configuration for establishing a CI/CD pipeline for Cloud Composer. It features:
+* **Linting & Formatting**: Checks using Ruff.
+* **Automated Testing**: Runs unit and integration tests against local Airflow instances inside a Composer-matching environment.
+* **Deployment**: Automatically syncs DAGs, data files, and dependencies (`requirements.txt`) to Cloud Composer environments upon successful validation.
+* **Agentic Remediation**: An optional setup using Antigravity CLI to automatically analyze, fix, and propose PRs for DAG failures or optimizations.
