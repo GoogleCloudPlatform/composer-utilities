@@ -18,7 +18,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiSections } from '../apiEndpoints';
-import { Badge, Card, Form, Button, Alert, Table, Spinner, Dropdown, Modal } from 'react-bootstrap';
+import { Badge, Card, Form, Button, Alert, Table, Spinner, Dropdown, Modal, InputGroup } from 'react-bootstrap';
 import apiClient from '../api/axios';
 import { useEnvironment } from '../context/EnvironmentContext';
 
@@ -81,6 +81,10 @@ function EndpointView() {
   const [triggeredEnvironment, setTriggeredEnvironment] = useState(null);
   const [showClearMappedModal, setShowClearMappedModal] = useState(false);
   const [clearingMappedDag, setClearingMappedDag] = useState(null);
+  const [showPatternModal, setShowPatternModal] = useState(false);
+  const [apiPattern, setApiPattern] = useState('');
+  const [apiPatternType, setApiPatternType] = useState('dag_id_pattern');
+  const [isApiPatternActive, setIsApiPatternActive] = useState(false);
 
   const columnsList = [
     { key: 'project', label: 'Project' },
@@ -125,18 +129,25 @@ function EndpointView() {
     }));
   };
 
-  const fetchDags = useCallback(async () => {
+  const fetchDags = useCallback(async (customParams = null) => {
     if (!currentEnvironment) return;
     setIsLoading(true);
     setError(null);
     try {
+      const activeParams = customParams !== null
+        ? customParams
+        : (isApiPatternActive && apiPattern ? { [apiPatternType]: apiPattern } : {});
+
       if (currentEnvironment.url === 'all') {
-        const response = await apiClient.get('/api/all-dags');
+        const response = await apiClient.get('/api/all-dags', { params: activeParams });
         setDags(response.data.dags);
         setImportErrors(response.data.import_errors || []);
       } else {
         const apiVersion = currentEnvironment.imageVersion && currentEnvironment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
-        const dagsResponse = await apiClient.get(`/api/${apiVersion}/dags`, { headers: { 'X-Composer-Environment': currentEnvironment.url } });
+        const dagsResponse = await apiClient.get(`/api/${apiVersion}/dags`, { 
+          headers: { 'X-Composer-Environment': currentEnvironment.url },
+          params: activeParams
+        });
         const detailsResponse = await apiClient.get(`/api/environments/${currentEnvironment.name}/details`, { headers: { 'X-Composer-Environment': currentEnvironment.url } });
         const importErrorsResponse = await apiClient.get(`/api/${apiVersion}/importErrors`, { headers: { 'X-Composer-Environment': currentEnvironment.url } });
 
@@ -152,7 +163,7 @@ function EndpointView() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentEnvironment]);
+  }, [currentEnvironment, isApiPatternActive, apiPattern, apiPatternType]);
 
   useEffect(() => {
     if (!currentEnvironment) return;
@@ -182,14 +193,36 @@ function EndpointView() {
     setter(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleApplyApiPattern = (patternOverride) => {
+    const val = (typeof patternOverride === 'string' ? patternOverride : filter).trim();
+    if (!val) {
+      handleClearApiPattern();
+      return;
+    }
+    setApiPattern(val);
+    setIsApiPatternActive(true);
+    fetchDags({ [apiPatternType]: val });
+  };
+
+  const handleClearApiPattern = () => {
+    setFilter('');
+    setApiPattern('');
+    setIsApiPatternActive(false);
+    fetchDags({});
+  };
+
   const handleToggleAllDags = async (isPaused) => {
     setIsBulkUpdating(true);
     try {
       if (currentEnvironment.url === 'all') {
-        const environmentsResponse = await apiClient.get('/api/environments');
-        const environments = environmentsResponse.data;
-        const promises = environments.map(env => toggleDagPaused('~', isPaused, env));
-        await Promise.all(promises);
+        try {
+          await apiClient.patch('/api/all-dags?dag_id_pattern=~&update_mask=is_paused', { is_paused: isPaused });
+        } catch (e) {
+          const environmentsResponse = await apiClient.get('/api/environments');
+          const environments = environmentsResponse.data;
+          const promises = environments.map(env => toggleDagPaused('~', isPaused, env));
+          await Promise.all(promises);
+        }
       } else {
         await toggleDagPaused('~', isPaused, currentEnvironment);
       }
@@ -201,15 +234,16 @@ function EndpointView() {
     }
   };
 
-  const toggleDagPaused = async (dagId, isPaused, environment) => {
+  const toggleDagPaused = async (dagId, isPaused, environment, patternType = 'dag_id_pattern') => {
     const apiVersion = environment.imageVersion && environment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
     let requestUrl = `/api/${apiVersion}/dags`;
     const queryParams = 'update_mask=is_paused';
 
-    if (dagId === '~') {
-      requestUrl = `${requestUrl}?dag_id_pattern=%25&${queryParams}`;
+    if (dagId === '~' || patternType === 'dag_id_prefix_pattern' || dagId.includes('%') || dagId.includes('|')) {
+      const encodedPattern = encodeURIComponent(dagId);
+      requestUrl = `${requestUrl}?${patternType}=${encodedPattern}&${queryParams}`;
     } else {
-      requestUrl = `${requestUrl}/${dagId}?${queryParams}`;
+      requestUrl = `${requestUrl}/${encodeURIComponent(dagId)}?${queryParams}`;
     }
 
     try {
@@ -803,6 +837,150 @@ function EndpointView() {
     }
   };
 
+  const executeBatchPatternOperation = async ({ pattern, patternType, action, targetEnvironment }) => {
+    setIsBulkUpdating(true);
+    setError(null);
+    try {
+      const isAll = !targetEnvironment || targetEnvironment.url === 'all';
+      const paramName = patternType || 'dag_id_pattern';
+      const encodedPattern = encodeURIComponent(pattern);
+
+      if (action === 'pause' || action === 'unpause') {
+        const isPaused = action === 'pause';
+        let updatedCount = 0;
+
+        if (isAll) {
+          try {
+            const patchRes = await apiClient.patch(`/api/all-dags?${paramName}=${encodedPattern}&update_mask=is_paused`, { is_paused: isPaused });
+            updatedCount = patchRes.data?.total_entries ?? patchRes.data?.dags?.length ?? 0;
+          } catch (e) {
+            const envsRes = await apiClient.get('/api/environments');
+            const envs = envsRes.data;
+            const promises = envs.map(async (env) => {
+              const apiVersion = env.imageVersion && env.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+              const patchUrl = `/api/${apiVersion}/dags?${paramName}=${encodedPattern}&update_mask=is_paused`;
+              const res = await apiClient.patch(patchUrl, { is_paused: isPaused }, { headers: { 'X-Composer-Environment': env.url } });
+              return res.data?.total_entries ?? res.data?.dags?.length ?? 0;
+            });
+            const results = await Promise.all(promises);
+            updatedCount = results.reduce((acc, c) => acc + c, 0);
+          }
+        } else {
+          const apiVersion = targetEnvironment.imageVersion && targetEnvironment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+          const patchUrl = `/api/${apiVersion}/dags?${paramName}=${encodedPattern}&update_mask=is_paused`;
+          const res = await apiClient.patch(patchUrl, { is_paused: isPaused }, { headers: { 'X-Composer-Environment': targetEnvironment.url } });
+          updatedCount = res.data?.total_entries ?? res.data?.dags?.length ?? 0;
+        }
+
+        fetchDags();
+        setResponse({
+          data: { message: `Batch ${action === 'pause' ? 'pause' : 'unpause'} completed for pattern "${pattern}" (${paramName}). Updated ${updatedCount} DAG(s).` },
+          status: 200,
+          statusText: 'OK'
+        });
+        setShowModal(true);
+        return { success: true, count: updatedCount };
+      }
+
+      // For fail_tasks, clear_tasks, trigger: fetch matching DAGs first using the pattern parameter
+      let matchingDags = [];
+      if (isAll) {
+        const dagsRes = await apiClient.get('/api/all-dags', { params: { [paramName]: pattern } });
+        matchingDags = dagsRes.data.dags || [];
+      } else {
+        const apiVersion = targetEnvironment.imageVersion && targetEnvironment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+        const dagsRes = await apiClient.get(`/api/${apiVersion}/dags`, {
+          headers: { 'X-Composer-Environment': targetEnvironment.url },
+          params: { [paramName]: pattern }
+        });
+        matchingDags = (dagsRes.data.dags || []).map(d => ({ ...d, environment: targetEnvironment }));
+      }
+
+      if (matchingDags.length === 0) {
+        setResponse({
+          data: { message: `No DAGs matched pattern "${pattern}" (${paramName}). No operations were performed.` },
+          status: 200,
+          statusText: 'OK'
+        });
+        setShowModal(true);
+        return { success: true, count: 0 };
+      }
+
+      if (action === 'fail_tasks') {
+        let totalModified = 0;
+        for (const dag of matchingDags) {
+          const count = await failTasksForDag(dag);
+          totalModified += count;
+        }
+        fetchDags();
+        setResponse({
+          data: { message: `Successfully executed batch fail tasks for pattern "${pattern}". Found ${matchingDags.length} matching DAG(s) and marked ${totalModified} active task instance(s) as failed.` },
+          status: 200,
+          statusText: 'OK'
+        });
+        setShowModal(true);
+        return { success: true, count: totalModified };
+      }
+
+      if (action === 'clear_tasks') {
+        let totalCleared = 0;
+        for (const dag of matchingDags) {
+          const count = await clearTasksForDag(dag);
+          totalCleared += count;
+        }
+        fetchDags();
+        setResponse({
+          data: { message: `Successfully executed batch clear tasks for pattern "${pattern}". Found ${matchingDags.length} matching DAG(s) and cleared approx ${totalCleared} task instance(s).` },
+          status: 200,
+          statusText: 'OK'
+        });
+        setShowModal(true);
+        return { success: true, count: totalCleared };
+      }
+
+      if (action === 'trigger') {
+        for (const dag of matchingDags) {
+          await triggerDag(dag.dag_id, dag.environment);
+        }
+        fetchDags();
+        setResponse({
+          data: { message: `Successfully triggered ${matchingDags.length} DAG(s) matching pattern "${pattern}".` },
+          status: 200,
+          statusText: 'OK'
+        });
+        setShowModal(true);
+        return { success: true, count: matchingDags.length };
+      }
+
+    } catch (err) {
+      let errorDetails = err.message;
+      if (err.response && err.response.data) {
+        errorDetails = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      }
+      setError(`Batch operation failed: ${errorDetails}`);
+      setShowModal(true);
+      return { success: false, error: errorDetails };
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const previewPatternMatchingDags = async (pattern, patternType, targetEnvironment) => {
+    const isAll = !targetEnvironment || targetEnvironment.url === 'all';
+    const paramName = patternType || 'dag_id_pattern';
+    if (isAll) {
+      const dagsRes = await apiClient.get('/api/all-dags', { params: { [paramName]: pattern } });
+      return dagsRes.data.dags || [];
+    } else {
+      const apiVersion = targetEnvironment.imageVersion && targetEnvironment.imageVersion.includes('-airflow-3') ? 'v2' : 'v1';
+      const dagsRes = await apiClient.get(`/api/${apiVersion}/dags`, {
+        headers: { 'X-Composer-Environment': targetEnvironment.url },
+        params: { [paramName]: pattern }
+      });
+      return (dagsRes.data.dags || []).map(d => ({ ...d, environment: targetEnvironment }));
+    }
+  };
+
   // Compute displayed items on every render
   const unassociatedErrors = importErrors.filter(error => {
     return !dags.some(dag => {
@@ -920,7 +1098,7 @@ function EndpointView() {
     displayedItems = displayedItems.filter(item => item.last_runs && item.last_runs.some(run => run.state === 'running'));
   }
 
-  if (filter) {
+  if (filter && (!isApiPatternActive || filter.trim() !== apiPattern.trim())) {
     displayedItems = displayedItems.filter(item =>
       [
         item.dag_id,
@@ -1049,18 +1227,21 @@ function EndpointView() {
         <Card.Body>
 
 
-          <Button variant="primary" onClick={fetchDags} className="mb-3">Refresh DAGs</Button>
-          <div className="mb-3">
-            <Button variant="warning" onClick={() => handleToggleAllDags(true)} className="me-2" disabled={isBulkUpdating}>Pause All DAGs</Button>
-            <Button variant="success" onClick={() => handleToggleAllDags(false)} className="me-2" disabled={isBulkUpdating}>Unpause All DAGs</Button>
-            <Button variant="danger" onClick={handleFailRunningDags} className="me-2" disabled={isBulkUpdating}>Fail Running DAGs</Button>
+          <Button variant="primary" onClick={() => fetchDags()} className="mb-3">Refresh DAGs</Button>
+          <div className="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <Button variant="warning" onClick={() => handleToggleAllDags(true)} disabled={isBulkUpdating}>Pause All DAGs (~)</Button>
+            <Button variant="success" onClick={() => handleToggleAllDags(false)} disabled={isBulkUpdating}>Unpause All DAGs (~)</Button>
+            <Button variant="outline-primary" onClick={() => setShowPatternModal(true)} disabled={isBulkUpdating}>
+              ⚡ Batch Operations by Pattern
+            </Button>
+            <Button variant="danger" onClick={handleFailRunningDags} disabled={isBulkUpdating}>Fail Running DAGs</Button>
             <Button variant="secondary" onClick={handleClearExistingTasks} disabled={isBulkUpdating}>Clear Existing Tasks</Button>
           </div>
-          <div className="mb-3 d-flex align-items-center">
-            <Button variant="warning" onClick={handlePauseSelectedDags} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Pause Selected</Button>
-            <Button variant="success" onClick={handleUnpauseSelectedDags} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Unpause Selected</Button>
-            <Button variant="danger" onClick={handleFailRunningTasks} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Fail Running Tasks</Button>
-            <Button variant="secondary" onClick={handleClearExistingTasksSelected} className="me-2" disabled={selectedDags.length === 0 || isBulkUpdating}>Clear Existing Tasks Selected</Button>
+          <div className="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <Button variant="warning" onClick={handlePauseSelectedDags} disabled={selectedDags.length === 0 || isBulkUpdating}>Pause Selected</Button>
+            <Button variant="success" onClick={handleUnpauseSelectedDags} disabled={selectedDags.length === 0 || isBulkUpdating}>Unpause Selected</Button>
+            <Button variant="danger" onClick={handleFailRunningTasks} disabled={selectedDags.length === 0 || isBulkUpdating}>Fail Running Tasks</Button>
+            <Button variant="secondary" onClick={handleClearExistingTasksSelected} disabled={selectedDags.length === 0 || isBulkUpdating}>Clear Existing Tasks Selected</Button>
             {isBulkUpdating && <Spinner animation="border" size="sm" className="ms-2" />}
           </div>
           {isLoading ? (
@@ -1071,14 +1252,45 @@ function EndpointView() {
             </div>
           ) : (
             <>
-              <div className="d-flex mb-2 gap-2 align-items-center">
-                <Form.Control
-                  type="text"
-                  placeholder="Filter DAGs..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="flex-grow-1"
-                />
+              <div className="d-flex mb-2 gap-2 align-items-center flex-wrap">
+                <InputGroup style={{ flex: '1 1 360px', minWidth: '280px' }}>
+                  <Form.Control
+                    type="text"
+                    placeholder="Filter table or enter API pattern (e.g. bq, test_, ~)..."
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyApiPattern(); }}
+                    aria-label="Filter table or API pattern input"
+                  />
+                  <Form.Select
+                    value={apiPatternType}
+                    onChange={(e) => setApiPatternType(e.target.value)}
+                    style={{ maxWidth: '175px', flex: '0 0 auto' }}
+                    title="Airflow REST API pattern matching type"
+                    aria-label="API Pattern Type"
+                  >
+                    <option value="dag_id_pattern">Pattern (ILIKE %_)</option>
+                    <option value="dag_id_prefix_pattern">Prefix Pattern</option>
+                  </Form.Select>
+                  <Button
+                    variant={isApiPatternActive ? "primary" : "outline-primary"}
+                    onClick={() => handleApplyApiPattern()}
+                    title="Query Airflow REST API using this pattern parameter"
+                    className="text-nowrap"
+                  >
+                    Filter API
+                  </Button>
+                  {isApiPatternActive && (
+                    <Button
+                      variant="outline-secondary"
+                      onClick={handleClearApiPattern}
+                      title="Clear active Airflow API filter"
+                      className="text-nowrap"
+                    >
+                      Clear API
+                    </Button>
+                  )}
+                </InputGroup>
                 <Button
                   variant={showErrorDagsOnly ? "danger" : "outline-danger"}
                   onClick={() => setShowErrorDagsOnly(!showErrorDagsOnly)}
@@ -1116,14 +1328,32 @@ function EndpointView() {
                 </Dropdown>
                 <Button
                   variant="outline-secondary"
-                  onClick={() => setColumnFilters({})}
-                  disabled={Object.keys(columnFilters).length === 0}
-                  title="Clear all column filters"
+                  onClick={() => {
+                    setColumnFilters({});
+                    setFilter('');
+                    if (isApiPatternActive) {
+                      handleClearApiPattern();
+                    }
+                  }}
+                  disabled={Object.keys(columnFilters).length === 0 && !filter && !isApiPatternActive}
+                  title="Clear all column and text filters"
                   className="text-nowrap"
                 >
                   Clear Filters
                 </Button>
               </div>
+              {isApiPatternActive && (
+                <div className="mb-2">
+                  <Alert variant="info" className="py-1 px-3 d-flex align-items-center justify-content-between mb-0">
+                    <span>
+                      Active Airflow REST API Filter: <code>{apiPatternType} = "{apiPattern}"</code>
+                    </span>
+                    <Button size="sm" variant="link" className="p-0 text-decoration-none" onClick={handleClearApiPattern}>
+                      Clear API Filter
+                    </Button>
+                  </Alert>
+                </div>
+              )}
               <div className="text-muted mt-1 mb-3">Showing {displayedItems.length} DAGs</div>
             <div className="table-responsive dags-table-container">
               <Table striped bordered hover key={filter} className="table-resizable">
@@ -1378,6 +1608,14 @@ function EndpointView() {
           onHide={() => { setShowClearMappedModal(false); setClearingMappedDag(null); }}
           dag={clearingMappedDag}
           onClear={handleClearMappedSubmit}
+        />
+        <PatternBatchModal
+          show={showPatternModal}
+          onHide={() => setShowPatternModal(false)}
+          currentEnvironment={currentEnvironment}
+          onExecute={executeBatchPatternOperation}
+          onPreview={previewPatternMatchingDags}
+          isExecuting={isBulkUpdating}
         />
       </Card>
     );
@@ -1696,6 +1934,243 @@ const ClearMappedTaskModal = ({ show, onHide, dag, onClear }) => {
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>Cancel</Button>
         <Button variant="primary" onClick={handleClear} disabled={mapIndex === '' || taskId === ''}>Clear</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+const PatternBatchModal = ({
+  show,
+  onHide,
+  currentEnvironment,
+  onExecute,
+  onPreview,
+  isExecuting,
+}) => {
+  const [patternType, setPatternType] = useState('dag_id_pattern');
+  const [pattern, setPattern] = useState('');
+  const [action, setAction] = useState('pause');
+  const [targetEnvMode, setTargetEnvMode] = useState('current');
+  const [previewList, setPreviewList] = useState(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [executionMessage, setExecutionMessage] = useState(null);
+
+  useEffect(() => {
+    if (show) {
+      setPreviewList(null);
+      setPreviewError(null);
+      setExecutionMessage(null);
+    }
+  }, [show]);
+
+  const targetEnvironment = (targetEnvMode === 'all' || currentEnvironment?.url === 'all')
+    ? { name: 'All Environments', url: 'all' }
+    : currentEnvironment;
+
+  const handlePreview = async () => {
+    if (!pattern.trim()) return;
+    setIsPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewList(null);
+    try {
+      const dags = await onPreview(pattern.trim(), patternType, targetEnvironment);
+      setPreviewList(dags);
+    } catch (err) {
+      setPreviewError(err.response?.data?.detail || err.message || 'Failed to preview matching DAGs');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!pattern.trim()) return;
+    setExecutionMessage(null);
+    const result = await onExecute({
+      pattern: pattern.trim(),
+      patternType,
+      action,
+      targetEnvironment,
+    });
+    if (result && result.success) {
+      setExecutionMessage(`Batch ${action.replace('_', ' ')} completed successfully! Affected ${result.count ?? 0} item(s).`);
+    }
+  };
+
+  const insertSnippet = (snippet) => {
+    setPattern(prev => (prev ? `${prev}${snippet}` : snippet));
+  };
+
+  return (
+    <Modal show={show} onHide={onHide} size="lg" backdrop="static">
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <span>⚡ Batch Operations on DAGs by Pattern</span>
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="mb-3">
+          <Alert variant="info" className="small mb-0">
+            <div className="fw-bold mb-1">About Airflow REST API Pattern Parameters:</div>
+            <ul className="mb-1 ps-3">
+              <li>
+                <strong>Substring Pattern (<code>dag_id_pattern</code>)</strong>: Case-insensitive substring match (<code>SQL ILIKE '%term%'</code>) where <code>%</code> matches any sequence and <code>_</code> matches any single character (e.g. <code>%customer_%</code>). Slower on large tables because it cannot use B-tree indexes.
+              </li>
+              <li>
+                <strong>Prefix Pattern (<code>dag_id_prefix_pattern</code>)</strong>: Matches the start of the value. Case-sensitive and index-friendly (prefer it at scale); <code>%</code> and <code>_</code> are literal and trailing non-alphanumeric characters are stripped so the range scan stays index-compatible under locale-aware collations (e.g. <code>test_</code> matches values starting with <code>test</code>, and <code>s3://</code> matches <code>s3</code>).
+              </li>
+              <li>
+                In both: <code>|</code> means <strong>OR</strong> (e.g. <code>dag1|dag2</code>) and <code>~</code> matches <strong>everything</strong>. Regular expressions are not supported.
+              </li>
+            </ul>
+          </Alert>
+        </div>
+
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Pattern Parameter Type</Form.Label>
+            <div className="d-flex flex-column flex-sm-row gap-3">
+              <Form.Check
+                type="radio"
+                id="radio-pattern-substring"
+                name="patternTypeOption"
+                label={<span><strong>Substring Pattern (<code>dag_id_pattern</code>)</strong> <span className="text-muted small">(Case-insensitive ILIKE '%term%', % and _)</span></span>}
+                checked={patternType === 'dag_id_pattern'}
+                onChange={() => { setPatternType('dag_id_pattern'); setPreviewList(null); }}
+              />
+              <Form.Check
+                type="radio"
+                id="radio-pattern-prefix"
+                name="patternTypeOption"
+                label={<span><strong>Prefix Pattern (<code>dag_id_prefix_pattern</code>)</strong> <span className="text-muted small">(Case-sensitive, index-friendly at scale)</span></span>}
+                checked={patternType === 'dag_id_prefix_pattern'}
+                onChange={() => { setPatternType('dag_id_prefix_pattern'); setPreviewList(null); }}
+              />
+            </div>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Pattern String</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder={patternType === 'dag_id_prefix_pattern' ? 'e.g. test_ or dag_ or s3://' : 'e.g. %customer_% or dag1|dag2 or ~'}
+              value={pattern}
+              onChange={(e) => { setPattern(e.target.value); setPreviewList(null); }}
+              aria-label="Pattern String Input"
+            />
+            <div className="mt-2 d-flex flex-wrap gap-1 align-items-center">
+              <span className="text-muted small me-1">Quick insert:</span>
+              <Button size="sm" variant="outline-secondary" className="py-0 px-2" onClick={() => setPattern('~')} title="Match all DAGs">
+                <code>~</code> (All)
+              </Button>
+              <Button size="sm" variant="outline-secondary" className="py-0 px-2" onClick={() => insertSnippet('|')} title="OR operator">
+                <code>|</code> (OR)
+              </Button>
+              {patternType === 'dag_id_pattern' && (
+                <>
+                  <Button size="sm" variant="outline-secondary" className="py-0 px-2" onClick={() => insertSnippet('%')} title="Any sequence wildcard">
+                    <code>%</code> (Wildcard)
+                  </Button>
+                  <Button size="sm" variant="outline-secondary" className="py-0 px-2" onClick={() => insertSnippet('_')} title="Single character wildcard">
+                    <code>_</code> (Single char)
+                  </Button>
+                </>
+              )}
+            </div>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label className="fw-bold">Batch Action</Form.Label>
+            <Form.Select value={action} onChange={(e) => setAction(e.target.value)} aria-label="Batch Action Selection">
+              <option value="pause">Pause Matching DAGs (PATCH /api/v1/dags with is_paused: true)</option>
+              <option value="unpause">Unpause Matching DAGs (PATCH /api/v1/dags with is_paused: false)</option>
+              <option value="fail_tasks">Fail Running Tasks (Mark active tasks failed for matching DAGs)</option>
+              <option value="clear_tasks">Clear Tasks (Reset latest run tasks for matching DAGs)</option>
+              <option value="trigger">Trigger DAG Runs (POST /api/v1/dags/[dag_id]/dagRuns for matching DAGs)</option>
+            </Form.Select>
+          </Form.Group>
+
+          {currentEnvironment?.url !== 'all' && (
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Target Environment</Form.Label>
+              <Form.Select value={targetEnvMode} onChange={(e) => { setTargetEnvMode(e.target.value); setPreviewList(null); }} aria-label="Target Environment Selection">
+                <option value="current">{currentEnvironment?.name} ({currentEnvironment?.project})</option>
+                <option value="all">All Environments (Across all projects/regions)</option>
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          <div className="p-3 border rounded bg-light mb-3">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="fw-bold">Preview Matching DAGs</span>
+              <Button
+                size="sm"
+                variant="outline-info"
+                onClick={handlePreview}
+                disabled={!pattern.trim() || isPreviewLoading}
+              >
+                {isPreviewLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-1" />
+                    Checking...
+                  </>
+                ) : (
+                  '🔍 Preview Matches via API'
+                )}
+              </Button>
+            </div>
+            {previewError && <Alert variant="danger" className="py-1 small mb-0">{previewError}</Alert>}
+            {previewList !== null && (
+              previewList.length > 0 ? (
+                <div>
+                  <div className="small text-success mb-1 fw-bold">
+                    Found {previewList.length} matching DAG(s) in {targetEnvironment.name}:
+                  </div>
+                  <div style={{ maxHeight: '160px', overflowY: 'auto' }} className="border rounded bg-white p-2">
+                    {previewList.map(d => (
+                      <div key={`${d.environment?.name || ''}-${d.dag_id}`} className="d-flex justify-content-between align-items-center py-1 border-bottom small">
+                        <span><strong>{d.dag_id}</strong> {d.environment && <span className="text-muted">({d.environment.name})</span>}</span>
+                        <Badge bg={d.is_paused ? 'warning' : 'success'}>
+                          {d.is_paused ? 'Paused' : 'Active'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="small text-muted">No DAGs matched pattern "{pattern}" via Airflow REST API.</div>
+              )
+            )}
+            {previewList === null && !isPreviewLoading && !previewError && (
+              <div className="small text-muted">Click "Preview Matches via API" to verify which DAGs match before running the batch action.</div>
+            )}
+          </div>
+
+          {executionMessage && (
+            <Alert variant="success" className="py-2 mb-0">
+              {executionMessage}
+            </Alert>
+          )}
+        </Form>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onHide} disabled={isExecuting}>
+          Close
+        </Button>
+        <Button
+          variant={action === 'pause' ? 'warning' : action === 'unpause' ? 'success' : action === 'fail_tasks' ? 'danger' : 'primary'}
+          onClick={handleExecute}
+          disabled={!pattern.trim() || isExecuting}
+        >
+          {isExecuting ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Executing Batch {action}...
+            </>
+          ) : (
+            `Execute Batch ${action.replace('_', ' ').toUpperCase()}`
+          )}
+        </Button>
       </Modal.Footer>
     </Modal>
   );

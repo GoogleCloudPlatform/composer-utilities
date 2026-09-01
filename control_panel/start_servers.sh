@@ -43,6 +43,12 @@ PROXY_PID=$!
 echo "Installing NPM dependencies..."
 npm install
 echo "Starting NPM server..."
+# Disable Webpack Dev Server host check during local development.
+# When a "proxy" is configured in package.json, Create React App (react-scripts 5)
+# enables an allowedHosts check that resolves to [undefined] on non-RFC1918 networks
+# (e.g. corporate networks, VPNs, or IPv6), crashing Webpack Dev Server with:
+# "options.allowedHosts[0] should be a non-empty string".
+export DANGEROUSLY_DISABLE_HOST_CHECK=true
 npm start &
 NPM_PID=$!
 
