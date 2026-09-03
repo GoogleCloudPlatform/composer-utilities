@@ -24,7 +24,7 @@ cicd/
 │   └── sleepy_task_group.py                   # Custom TaskGroup, dynamic mapping, and Param controls
 ├── tests/                           # Testing suite validating DAGs and Airflow runtime behavior
 │   ├── unit/
-│   │   └── test_unit.py             # Static validation: DagBag imports, SLA parse times, start dates, KPO namespaces
+│   │   └── test_unit.py             # Static validation: DagBag imports, SLA parse times, start dates, DAG owners, KPO namespaces
 │   └── integration/
 │       └── test_integration.py      # Dynamic REST API validation: DAG unpausing, triggers, polling, and auth (AF2/AF3)
 └── gemini_fixes/                    # Automated code optimization & PR workflow using Antigravity CLI
@@ -128,6 +128,7 @@ The test suite validates both static configurations and dynamic task executions.
 - **Import Error Detection**: Verifies `dagbag.import_errors == {}` ensuring that no Python syntax or module loading errors exist.
 - **DAG ID & Filename Alignment**: Asserts that every DAG's `dag_id` strictly matches its file stem (`Path(dag.relative_fileloc).stem`).
 - **Static Start Dates**: Asserts that all DAGs define a fixed, static `start_date` (preventing dynamic shifting dates such as `days_ago` or `datetime.now()`).
+- **DAG Ownership**: Asserts that all DAGs have a valid owner configured in their `default_args`.
 - **DAG Parsing SLA Threshold**: Checks the duration required by the scheduler to parse each DAG file (`dagbag.dagbag_stats`), asserting that parsing takes less than `PARSING_DURATION_THRESHOLD = 2.5` seconds to prevent scheduler CPU starvation.
 - **DAG Graph & Structure Validation**:
   - `test_sleepy_dynamic_task_mapping_structure`: Asserts DAG contains `>= 2` tasks and includes `sleep_for.sleepy_pod`.
