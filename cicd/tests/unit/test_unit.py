@@ -59,9 +59,19 @@ def test_all_dags_have_start_date(dagbag):
 
 
 def test_all_dags_have_owner(dagbag):
-    """Tests that all DAGs have an owner assigned to the owner property."""
+    """Tests that all DAGs have an owner assigned in default_args."""
+    unowned_dags = []
     for dag_id, dag in dagbag.dags.items():
-        assert dag.owner, f"DAG {dag_id} does not have an owner."
+        default_args = getattr(dag, "default_args", {}) or {}
+        owner = default_args.get("owner")
+        if not owner or str(owner).lower() in ("airflow", "root"):
+            unowned_dags.append(
+                f"DAG '{dag_id}' does not have a valid owner in default_args (currently: '{owner}')"
+            )
+    assert not unowned_dags, (
+        "The following DAGs do not have a valid owner specified in default_args:\n"
+        + "\n".join(unowned_dags)
+    )
 
 
 def test_sleepy_dynamic_task_mapping_structure(dagbag):

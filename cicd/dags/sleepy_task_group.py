@@ -67,10 +67,10 @@ class CustomSleepyTaskGroup(TaskGroup):
         ),
     },
     default_args={
+        "owner": "google-pso",
         "retries": 3,
         "retry_delay": pendulum.duration(minutes=5),
     },
-    owner="google-pso",
 )
 def sleepy_task_group():
     @task

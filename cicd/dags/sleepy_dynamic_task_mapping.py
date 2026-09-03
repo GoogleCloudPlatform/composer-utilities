@@ -27,10 +27,10 @@ from kubernetes.client import models as k8s
     catchup=False,
     max_active_tasks=100,
     default_args={
+        "owner": "google-pso",
         "retries": 10,
         "retry_delay": datetime.timedelta(seconds=10),
     },
-    owner="google-pso",
 )
 def sleepy_dynamic_task_mapping():
     @task
