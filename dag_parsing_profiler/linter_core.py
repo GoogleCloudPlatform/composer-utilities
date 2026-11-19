@@ -61,18 +61,38 @@ def download_folder(bucket: storage.Bucket, prefix: str, local_subdir: str, conf
     blobs = bucket.list_blobs(prefix=prefix)
     target_dir = os.path.join(base_work_dir, local_subdir)
     os.makedirs(target_dir, exist_ok=True)
+    real_target = os.path.realpath(target_dir)
 
     count = 0
     for blob in blobs:
         if blob.name.endswith('/'):
             continue
 
+        # Security: GCS object names are opaque strings and may legally contain
+        # '..' segments. Refuse to write outside target_dir.
+        suffix = (
+            blob.name[len(prefix):] if blob.name.startswith(prefix) else blob.name
+        )
+        suffix_parts = suffix.split('/')
+        if '..' in suffix_parts or suffix_parts[-1] == '.':
+            report_lines.append(f"SKIPPED (path escape): {blob.name}")
+            continue
+
         # Calculate relative path (e.g., 'plugins/hooks/my_hook.py' -> 'hooks/my_hook.py')
         rel_path = os.path.relpath(blob.name, prefix)
         dest_path = os.path.join(target_dir, rel_path)
+        real_dest = os.path.realpath(dest_path)
 
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        blob.download_to_filename(dest_path)
+        if (
+            real_dest == real_target
+            or os.path.splitdrive(real_dest)[0] != os.path.splitdrive(real_target)[0]
+            or os.path.commonpath([real_target, real_dest]) != real_target
+        ):
+            report_lines.append(f"SKIPPED (path escape): {blob.name}")
+            continue
+
+        os.makedirs(os.path.dirname(real_dest), exist_ok=True)
+        blob.download_to_filename(real_dest)
         count += 1
 
     report_lines.append(f"Downloaded {count} files from '{prefix}' to '{target_dir}'")
